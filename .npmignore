@@ -1,0 +1,7 @@
+test/
+docs/
+.github/
+.editorconfig
+.gitignore
+CONTRIBUTING.md
+CHANGELOG.md

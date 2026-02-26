@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#1a1a2e" />
+    <title>TermBeam — Terminal</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.min.css"
+    />
+    <style>
+      @font-face {
+        font-family: 'NerdFont';
+        src: url('https://cdn.jsdelivr.net/gh/ryanoasis/nerd-fonts@latest/patched-fonts/JetBrainsMono/Ligatures/Regular/JetBrainsMonoNerdFont-Regular.ttf')
+          format('truetype');
+        font-weight: normal;
+        font-style: normal;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: 'NerdFont';
+        src: url('https://cdn.jsdelivr.net/gh/ryanoasis/nerd-fonts@latest/patched-fonts/JetBrainsMono/Ligatures/Bold/JetBrainsMonoNerdFont-Bold.ttf')
+          format('truetype');
+        font-weight: bold;
+        font-style: normal;
+        font-display: swap;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+        width: 100%;
+        background: #1a1a2e;
+        color: #e0e0e0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        overflow: hidden;
+        touch-action: manipulation;
+        /* Use dvh to account for mobile browser chrome + keyboard */
+        height: 100dvh;
+      }
+
+      #status-bar {
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 12px;
+        background: #16213e;
+        border-bottom: 1px solid #0f3460;
+        font-size: 13px;
+      }
+      #status-bar .left {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      #back-btn {
+        background: none;
+        border: none;
+        color: #888;
+        font-size: 18px;
+        cursor: pointer;
+        padding: 0 4px;
+      }
+      #back-btn:active {
+        color: #e0e0e0;
+      }
+      #status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #e74c3c;
+        display: inline-block;
+      }
+      #status-dot.connected {
+        background: #2ecc71;
+      }
+      #status-text {
+        color: #aaa;
+      }
+      #session-name {
+        font-weight: 600;
+      }
+
+      #terminal-container {
+        position: absolute;
+        top: 36px;
+        left: 0;
+        right: 0;
+        bottom: 44px;
+        padding: 2px;
+        overflow: hidden;
+      }
+
+      #key-bar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        background: #16213e;
+        border-top: 1px solid #0f3460;
+        padding: 0 3px;
+        padding-bottom: env(safe-area-inset-bottom, 0);
+        gap: 3px;
+        overflow-x: auto;
+        z-index: 50;
+      }
+      .key-btn {
+        min-width: 40px;
+        height: 32px;
+        background: #0f3460;
+        color: #e0e0e0;
+        border: 1px solid #1a1a5e;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-tap-highlight-color: transparent;
+        user-select: none;
+        white-space: nowrap;
+        padding: 0 6px;
+        flex-shrink: 0;
+      }
+      .key-btn:active {
+        background: #533483;
+      }
+      .key-btn.wide {
+        min-width: 52px;
+      }
+      .key-sep {
+        width: 1px;
+        height: 20px;
+        background: #0f3460;
+        flex-shrink: 0;
+      }
+
+      .xterm {
+        height: 100% !important;
+      }
+      .xterm-viewport {
+        overflow-y: hidden !important;
+      }
+
+      #reconnect-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.85);
+        z-index: 100;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+      }
+      #reconnect-overlay.visible {
+        display: flex;
+      }
+      #reconnect-overlay .msg {
+        font-size: 17px;
+      }
+      .overlay-actions {
+        display: flex;
+        gap: 12px;
+      }
+      .overlay-actions button {
+        padding: 10px 24px;
+        border: none;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      #reconnect-btn {
+        background: #533483;
+        color: white;
+      }
+      #back-to-sessions {
+        background: #0f3460;
+        color: #e0e0e0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="status-bar">
+      <div class="left">
+        <button id="back-btn" onclick="location.href = '/'">‹</button>
+        <span id="status-dot"></span>
+        <span id="session-name">…</span>
+      </div>
+      <span id="status-text">Connecting…</span>
+      <span id="version-text" style="font-size: 11px; color: #555; margin-left: 8px"></span>
+    </div>
+
+    <div id="terminal-container"></div>
+
+    <div id="key-bar">
+      <button class="key-btn" data-key="&#x1b;[A">↑</button>
+      <button class="key-btn" data-key="&#x1b;[B">↓</button>
+      <button class="key-btn" data-key="&#x1b;[D">←</button>
+      <button class="key-btn" data-key="&#x1b;[C">→</button>
+      <div class="key-sep"></div>
+      <button class="key-btn wide" data-key="&#x09;">Tab</button>
+      <button class="key-btn wide" data-key="&#x0d;">Enter</button>
+      <button class="key-btn" data-key="&#x1b;">Esc</button>
+      <div class="key-sep"></div>
+      <button class="key-btn" data-key="&#x03;">^C</button>
+      <button class="key-btn" data-key="&#x04;">^D</button>
+      <button class="key-btn" data-key="&#x1a;">^Z</button>
+      <button class="key-btn" data-key="&#x0c;">^L</button>
+      <div class="key-sep"></div>
+      <button class="key-btn" id="zoom-out">A-</button>
+      <button class="key-btn" id="zoom-in">A+</button>
+    </div>
+
+    <div id="reconnect-overlay">
+      <div class="msg">Session disconnected</div>
+      <div class="overlay-actions">
+        <button id="back-to-sessions" onclick="location.href = '/'">Sessions</button>
+        <button id="reconnect-btn">Reconnect</button>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-web-links@0.11.0/lib/addon-web-links.min.js"></script>
+    <script>
+      const sessionId = new URLSearchParams(location.search).get('id');
+      if (!sessionId) {
+        location.href = '/';
+      }
+
+      const statusDot = document.getElementById('status-dot');
+      const statusText = document.getElementById('status-text');
+      const sessionName = document.getElementById('session-name');
+      const reconnectOverlay = document.getElementById('reconnect-overlay');
+
+      // Load Nerd Font, then init terminal
+      const nerdFont = new FontFace(
+        'NerdFont',
+        "url('https://cdn.jsdelivr.net/gh/ryanoasis/nerd-fonts@latest/patched-fonts/JetBrainsMono/Ligatures/Regular/JetBrainsMonoNerdFont-Regular.ttf')",
+      );
+
+      nerdFont
+        .load()
+        .then((font) => {
+          document.fonts.add(font);
+          initTerminal();
+        })
+        .catch(() => {
+          // Fallback: init without Nerd Font
+          console.warn('Nerd Font failed to load, using fallback');
+          initTerminal();
+        });
+
+      function initTerminal() {
+        const savedFontSize = parseInt(localStorage.getItem('termbeam-fontsize') || '8', 10);
+        const term = new window.Terminal({
+          cursorBlink: true,
+          fontSize: savedFontSize,
+          fontFamily:
+            "'NerdFont', 'JetBrains Mono', 'MesloLGS NF', 'Hack Nerd Font', 'Fira Code', Menlo, monospace",
+          fontWeight: 'normal',
+          fontWeightBold: 'bold',
+          letterSpacing: 0,
+          lineHeight: 1.1,
+          theme: {
+            background: '#1a1a2e',
+            foreground: '#e0e0e0',
+            cursor: '#533483',
+            cursorAccent: '#1a1a2e',
+            selectionBackground: 'rgba(83, 52, 131, 0.4)',
+            black: '#1a1a2e',
+            red: '#e74c3c',
+            green: '#2ecc71',
+            yellow: '#f1c40f',
+            blue: '#3498db',
+            magenta: '#9b59b6',
+            cyan: '#1abc9c',
+            white: '#ecf0f1',
+            brightBlack: '#636e72',
+            brightRed: '#ff6b6b',
+            brightGreen: '#55efc4',
+            brightYellow: '#ffeaa7',
+            brightBlue: '#74b9ff',
+            brightMagenta: '#a29bfe',
+            brightCyan: '#81ecec',
+            brightWhite: '#ffffff',
+          },
+          allowProposedApi: true,
+          scrollback: 10000,
+        });
+
+        const fitAddon = new window.FitAddon.FitAddon();
+        const webLinksAddon = new window.WebLinksAddon.WebLinksAddon();
+        term.loadAddon(fitAddon);
+        term.loadAddon(webLinksAddon);
+
+        const container = document.getElementById('terminal-container');
+        term.open(container);
+        fitAddon.fit();
+
+        let ws = null;
+
+        function connect() {
+          const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+          ws = new WebSocket(`${proto}://${location.host}/ws`);
+
+          ws.onopen = () => {
+            statusDot.className = 'connected';
+            statusText.textContent = 'Connected';
+            reconnectOverlay.classList.remove('visible');
+            // Attach to session
+            ws.send(JSON.stringify({ type: 'attach', sessionId }));
+          };
+
+          ws.onmessage = (event) => {
+            try {
+              const msg = JSON.parse(event.data);
+              if (msg.type === 'output') {
+                term.write(msg.data);
+              } else if (msg.type === 'attached') {
+                // Send terminal size after attach
+                const dims = fitAddon.proposeDimensions();
+                if (dims) {
+                  ws.send(JSON.stringify({ type: 'resize', cols: dims.cols, rows: dims.rows }));
+                }
+              } else if (msg.type === 'exit') {
+                statusText.textContent = `Exited (code ${msg.code})`;
+                statusDot.className = '';
+                reconnectOverlay.querySelector('.msg').textContent =
+                  `Session exited (code ${msg.code})`;
+                reconnectOverlay.classList.add('visible');
+              } else if (msg.type === 'error') {
+                statusText.textContent = msg.message;
+                reconnectOverlay.querySelector('.msg').textContent = msg.message;
+                reconnectOverlay.classList.add('visible');
+              }
+            } catch {
+              term.write(event.data);
+            }
+          };
+
+          ws.onclose = () => {
+            statusDot.className = '';
+            statusText.textContent = 'Disconnected';
+            reconnectOverlay.classList.add('visible');
+          };
+
+          ws.onerror = () => {
+            statusText.textContent = 'Connection error';
+          };
+        }
+
+        // Terminal input → WebSocket
+        term.onData((data) => {
+          if (ws && ws.readyState === 1) {
+            ws.send(JSON.stringify({ type: 'input', data }));
+          }
+        });
+
+        // Resize
+        function doResize() {
+          fitAddon.fit();
+          if (ws && ws.readyState === 1) {
+            const dims = fitAddon.proposeDimensions();
+            if (dims) {
+              ws.send(JSON.stringify({ type: 'resize', cols: dims.cols, rows: dims.rows }));
+            }
+          }
+        }
+        window.addEventListener('resize', doResize);
+        screen.orientation?.addEventListener('change', () => setTimeout(doResize, 150));
+
+        // Key bar (skip zoom buttons — handled separately)
+        // Use mousedown + preventDefault to stop buttons from stealing focus/opening keyboard
+        document.getElementById('key-bar').addEventListener('mousedown', (e) => {
+          // Only prevent default on buttons, not the scrollable bar itself
+          if (e.target.closest('.key-btn')) {
+            e.preventDefault();
+          }
+        });
+        // touchstart must be passive to allow native horizontal scrolling
+        document
+          .getElementById('key-bar')
+          .addEventListener('touchstart', () => {}, { passive: true });
+        document.getElementById('key-bar').addEventListener('click', (e) => {
+          const btn = e.target.closest('.key-btn');
+          if (!btn || btn.id === 'zoom-in' || btn.id === 'zoom-out') return;
+          if (ws && ws.readyState === 1) {
+            ws.send(JSON.stringify({ type: 'input', data: btn.dataset.key }));
+          }
+          // Don't call term.focus() here — it opens the soft keyboard
+        });
+
+        // Zoom
+        const MIN_FONT = 2,
+          MAX_FONT = 28;
+        let fontSize = parseInt(localStorage.getItem('termbeam-fontsize') || '8', 10);
+
+        function applyZoom(size) {
+          fontSize = Math.max(MIN_FONT, Math.min(MAX_FONT, size));
+          term.options.fontSize = fontSize;
+          localStorage.setItem('termbeam-fontsize', fontSize);
+          doResize();
+        }
+
+        document.getElementById('zoom-in').addEventListener('click', () => {
+          applyZoom(fontSize + 2);
+        });
+        document.getElementById('zoom-out').addEventListener('click', () => {
+          applyZoom(fontSize - 2);
+        });
+
+        // Reconnect
+        document.getElementById('reconnect-btn').addEventListener('click', () => {
+          term.clear();
+          connect();
+        });
+
+        // Tap terminal area to toggle keyboard (intentional user action)
+        container.addEventListener('click', () => term.focus());
+
+        // Handle mobile soft keyboard via visualViewport
+        // When keyboard opens, the viewport shrinks — reposition key bar and resize terminal
+        if (window.visualViewport) {
+          const keyBar = document.getElementById('key-bar');
+          const statusBar = document.getElementById('status-bar');
+
+          function onViewportResize() {
+            const vv = window.visualViewport;
+            const keyboardHeight = window.innerHeight - vv.height;
+
+            if (keyboardHeight > 50) {
+              // Keyboard is open — move key bar above it
+              keyBar.style.bottom = keyboardHeight + 'px';
+              container.style.bottom = 44 + keyboardHeight + 'px';
+            } else {
+              // Keyboard closed
+              keyBar.style.bottom = '0px';
+              container.style.bottom = '44px';
+            }
+            // Refit terminal to new available space
+            setTimeout(() => doResize(), 50);
+          }
+
+          window.visualViewport.addEventListener('resize', onViewportResize);
+          window.visualViewport.addEventListener('scroll', onViewportResize);
+        }
+
+        // Fetch session name
+        fetch('/api/sessions')
+          .then((r) => r.json())
+          .then((sessions) => {
+            const s = sessions.find((s) => s.id === sessionId);
+            if (s) sessionName.textContent = s.name;
+          });
+
+        // Fetch version
+        fetch('/api/version')
+          .then((r) => r.json())
+          .then((d) => {
+            document.getElementById('version-text').textContent = 'v' + d.version;
+          })
+          .catch(() => {});
+
+        connect();
+      }
+    </script>
+  </body>
+</html>

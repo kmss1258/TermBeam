@@ -1,0 +1,126 @@
+const { describe, it, beforeEach, afterEach } = require('node:test');
+const assert = require('node:assert');
+const Module = require('module');
+
+// Mock node-pty before requiring sessions
+const originalResolveFilename = Module._resolveFilename;
+
+describe('SessionManager', () => {
+  let SessionManager;
+  let mockPtyProcesses;
+
+  beforeEach(() => {
+    mockPtyProcesses = [];
+
+    // Mock node-pty
+    Module._resolveFilename = function (request, parent) {
+      if (request === 'node-pty') return 'node-pty';
+      return originalResolveFilename.call(this, request, parent);
+    };
+
+    require.cache['node-pty'] = {
+      id: 'node-pty',
+      filename: 'node-pty',
+      loaded: true,
+      exports: {
+        spawn: (shell, args, opts) => {
+          const callbacks = {};
+          const mockProcess = {
+            pid: 1000 + mockPtyProcesses.length,
+            onData: (cb) => {
+              callbacks.onData = cb;
+            },
+            onExit: (cb) => {
+              callbacks.onExit = cb;
+            },
+            write: () => {},
+            resize: () => {},
+            kill: () => {
+              if (callbacks.onExit) callbacks.onExit({ exitCode: 0 });
+            },
+            _callbacks: callbacks,
+            _shell: shell,
+            _args: args,
+            _opts: opts,
+          };
+          mockPtyProcesses.push(mockProcess);
+          return mockProcess;
+        },
+      },
+    };
+
+    // Clear sessions module cache and re-require
+    delete require.cache[require.resolve('../src/sessions')];
+    ({ SessionManager } = require('../src/sessions'));
+  });
+
+  afterEach(() => {
+    Module._resolveFilename = originalResolveFilename;
+    delete require.cache['node-pty'];
+    delete require.cache[require.resolve('../src/sessions')];
+  });
+
+  it('should create a session and return an id', () => {
+    const mgr = new SessionManager();
+    const id = mgr.create({ name: 'test', shell: '/bin/sh', cwd: '/tmp' });
+    assert.ok(id);
+    assert.strictEqual(typeof id, 'string');
+    assert.strictEqual(id.length, 8);
+  });
+
+  it('should list created sessions', () => {
+    const mgr = new SessionManager();
+    mgr.create({ name: 'sess1', shell: '/bin/sh', cwd: '/tmp' });
+    mgr.create({ name: 'sess2', shell: '/bin/bash', cwd: '/home' });
+    const list = mgr.list();
+    assert.strictEqual(list.length, 2);
+    assert.strictEqual(list[0].name, 'sess1');
+    assert.strictEqual(list[1].name, 'sess2');
+  });
+
+  it('should get a session by id', () => {
+    const mgr = new SessionManager();
+    const id = mgr.create({ name: 'test', shell: '/bin/sh', cwd: '/tmp' });
+    const session = mgr.get(id);
+    assert.ok(session);
+    assert.strictEqual(session.name, 'test');
+  });
+
+  it('should return undefined for unknown id', () => {
+    const mgr = new SessionManager();
+    assert.strictEqual(mgr.get('nonexistent'), undefined);
+  });
+
+  it('should delete a session', () => {
+    const mgr = new SessionManager();
+    const id = mgr.create({ name: 'test', shell: '/bin/sh', cwd: '/tmp' });
+    assert.strictEqual(mgr.delete(id), true);
+    assert.strictEqual(mgr.get(id), undefined);
+    assert.strictEqual(mgr.list().length, 0);
+  });
+
+  it('should return false when deleting nonexistent session', () => {
+    const mgr = new SessionManager();
+    assert.strictEqual(mgr.delete('nonexistent'), false);
+  });
+
+  it('should shutdown all sessions', () => {
+    const mgr = new SessionManager();
+    mgr.create({ name: 's1', shell: '/bin/sh', cwd: '/tmp' });
+    mgr.create({ name: 's2', shell: '/bin/sh', cwd: '/tmp' });
+    assert.strictEqual(mgr.list().length, 2);
+    mgr.shutdown();
+    assert.strictEqual(mgr.list().length, 0);
+  });
+
+  it('should track session metadata', () => {
+    const mgr = new SessionManager();
+    const id = mgr.create({ name: 'myterm', shell: '/bin/zsh', args: ['-l'], cwd: '/Users/test' });
+    const list = mgr.list();
+    assert.strictEqual(list[0].name, 'myterm');
+    assert.strictEqual(list[0].shell, '/bin/zsh');
+    assert.strictEqual(list[0].cwd, '/Users/test');
+    assert.ok(list[0].pid);
+    assert.ok(list[0].createdAt);
+  });
+});

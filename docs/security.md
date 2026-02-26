@@ -1,0 +1,57 @@
+# Security
+
+## Overview
+
+TermBeam provides access to a real shell on your machine. **Security is critical.**
+
+## Threat Model
+
+TermBeam is designed for **trusted local networks**. It is NOT designed as a production-grade remote access tool. Use with caution when exposing to the internet.
+
+## Security Features
+
+### Authentication
+
+- Password-based authentication via `--password` or `--generate-password`
+- Tokens are cryptographically random (32 bytes, hex-encoded)
+- Tokens expire after 24 hours
+- Stored in httpOnly cookies (not accessible via JavaScript)
+- Cookie uses `sameSite: lax` to prevent CSRF
+- Cookie `secure` flag is off (tokens sent over HTTP for localhost compatibility)
+
+### Rate Limiting
+
+- Login endpoint limited to **5 attempts per minute** per IP
+- Returns HTTP 429 when exceeded
+
+### HTTP Security Headers
+
+Every response includes:
+
+| Header                   | Value           | Purpose               |
+| ------------------------ | --------------- | --------------------- |
+| `X-Content-Type-Options` | `nosniff`       | Prevent MIME sniffing |
+| `X-Frame-Options`        | `DENY`          | Prevent clickjacking  |
+| `X-XSS-Protection`       | `1; mode=block` | XSS filter            |
+| `Referrer-Policy`        | `no-referrer`   | No referrer leaks     |
+
+### Network Binding
+
+- **Default:** Binds to `0.0.0.0` (all interfaces, LAN-accessible)
+- Use `--host 127.0.0.1` to restrict to localhost only
+- The tunnel feature handles TLS via Azure DevTunnels
+
+## Best Practices
+
+!!! danger "Never Run Without a Password on a Public Network"
+Without authentication, anyone on the network can access your terminal with your user permissions.
+
+1. **Always use a password** — prefer `--generate-password` for strong random passwords
+2. **Use `--host 127.0.0.1`** if you don't need LAN access
+3. **Use tunnels carefully** — they make your terminal publicly accessible
+4. **Close TermBeam when done** — it's not a daemon, don't leave it running
+5. **Use on trusted networks** — TermBeam is not designed for hostile environments
+
+## Reporting Vulnerabilities
+
+If you find a security vulnerability, please email the maintainers directly rather than opening a public issue. See the repository for contact details.
