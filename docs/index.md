@@ -30,6 +30,6 @@ TermBeam starts a lightweight web server that:
 
 ```mermaid
 flowchart LR
-  A["📱 Phone\n(Browser)"] <-->|WebSocket| B["📡 TermBeam\n(Server)"]
-  B <-->|PTY| C["🖥️ Shell\n(zsh/bash)"]
+  A["📱 Phone<br>(Browser)"] <-->|WebSocket| B["📡 TermBeam<br>(Server)"]
+  B <-->|PTY| C["🖥️ Shell<br>(zsh/bash)"]
 ```
