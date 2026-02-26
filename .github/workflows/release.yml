@@ -89,7 +89,11 @@ jobs:
           else
             git commit -m "chore(release): v${NEW_VERSION}"
           fi
-          git tag -a "v${NEW_VERSION}" -m "Release v${NEW_VERSION}"
+          if git rev-parse "v${NEW_VERSION}" >/dev/null 2>&1; then
+            echo "Tag v${NEW_VERSION} already exists, skipping"
+          else
+            git tag -a "v${NEW_VERSION}" -m "Release v${NEW_VERSION}"
+          fi
           git push origin main --follow-tags
 
       - name: Publish to npm
