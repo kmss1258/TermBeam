@@ -33,28 +33,84 @@ Environment:
 `);
 }
 
+/**
+ * Get ancestor process names on Windows by walking up the process tree.
+ * Fetches all processes in a single wmic call, then walks the tree in memory.
+ */
+function getWindowsAncestors(startPid, maxDepth = 4) {
+  const { execFileSync } = require('child_process');
+  const names = [];
+  const safePid = parseInt(startPid, 10);
+  if (!Number.isFinite(safePid) || safePid <= 0) return names;
+
+  try {
+    const result = execFileSync(
+      'wmic',
+      ['process', 'get', 'Name,ParentProcessId,ProcessId', '/format:csv'],
+      { stdio: ['pipe', 'pipe', 'ignore'], encoding: 'utf8', timeout: 5000 },
+    );
+
+    // Parse CSV output — first non-empty line is the header
+    const lines = result.split(/\r?\n/).filter((l) => l.trim());
+    if (lines.length === 0) return names;
+
+    const header = lines[0].split(',').map((h) => h.trim());
+    const nameIdx = header.indexOf('Name');
+    const pidIdx = header.indexOf('ProcessId');
+    const ppidIdx = header.indexOf('ParentProcessId');
+    if (nameIdx === -1 || pidIdx === -1 || ppidIdx === -1) return names;
+
+    const processes = new Map();
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i].split(',');
+      if (cols.length <= Math.max(nameIdx, pidIdx, ppidIdx)) continue;
+      const pid = parseInt(cols[pidIdx], 10);
+      if (Number.isFinite(pid)) {
+        processes.set(pid, { name: cols[nameIdx].trim().toLowerCase(), ppid: parseInt(cols[ppidIdx], 10) });
+      }
+    }
+
+    // Walk up the tree in memory — no more subprocess calls
+    let currentPid = safePid;
+    for (let i = 0; i < maxDepth; i++) {
+      const proc = processes.get(currentPid);
+      if (!proc) break;
+      console.log(`[termbeam] Process tree: ${proc.name}`);
+      names.push(proc.name);
+      if (!Number.isFinite(proc.ppid) || proc.ppid === 0 || proc.ppid === currentPid) break;
+      currentPid = proc.ppid;
+    }
+  } catch (err) {
+    console.log(`[termbeam] Could not query process tree: ${err.message}`);
+  }
+
+  return names;
+}
+
 function getDefaultShell() {
   const { execFileSync } = require('child_process');
   const ppid = process.ppid;
   console.log(`[termbeam] Detecting shell (parent PID: ${ppid}, platform: ${os.platform()})`);
 
   if (os.platform() === 'win32') {
-    // Detect parent process on Windows via WMIC
-    try {
-      const result = execFileSync(
-        'wmic',
-        ['process', 'where', `ProcessId=${ppid}`, 'get', 'Name', '/value'],
-        { stdio: ['pipe', 'pipe', 'ignore'], encoding: 'utf8', timeout: 3000 },
-      );
-      const match = result.match(/Name=(.+)/);
-      if (match) {
-        const name = match[1].trim().toLowerCase();
-        console.log(`[termbeam] Detected parent process: ${name}`);
-        if (name === 'pwsh.exe') return 'pwsh.exe';
-        if (name === 'powershell.exe') return 'powershell.exe';
+    // Walk up the process tree (up to 4 ancestors) to find the real user shell.
+    // npx/npm on Windows spawns cmd.exe as intermediary, so the immediate
+    // parent is often cmd.exe or node.exe rather than the user's actual shell.
+    const ancestors = getWindowsAncestors(ppid);
+    const preferredShells = ['pwsh.exe', 'powershell.exe'];
+
+    let foundCmd = false;
+    for (const name of ancestors) {
+      if (preferredShells.includes(name)) {
+        console.log(`[termbeam] Found shell in process tree: ${name}`);
+        return name;
       }
-    } catch (err) {
-      console.log(`[termbeam] Could not detect parent process: ${err.message}`);
+      if (name === 'cmd.exe') foundCmd = true;
+    }
+
+    if (foundCmd) {
+      console.log(`[termbeam] Using detected shell: cmd.exe`);
+      return 'cmd.exe';
     }
     const fallback = process.env.COMSPEC || 'cmd.exe';
     console.log(`[termbeam] Falling back to: ${fallback}`);
