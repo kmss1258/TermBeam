@@ -8,9 +8,47 @@
     />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="theme-color" content="#1a1a2e" />
+    <meta name="theme-color" content="#1e1e1e" />
     <title>TermBeam</title>
     <style>
+      :root {
+        --bg: #1e1e1e;
+        --surface: #252526;
+        --border: #3c3c3c;
+        --border-subtle: #474747;
+        --text: #d4d4d4;
+        --text-secondary: #858585;
+        --text-dim: #6e6e6e;
+        --text-muted: #5a5a5a;
+        --accent: #0078d4;
+        --accent-hover: #1a8ae8;
+        --accent-active: #005a9e;
+        --danger: #f14c4c;
+        --danger-hover: #d73a3a;
+        --success: #89d185;
+        --info: #b0b0b0;
+        --shadow: rgba(0,0,0,0.15);
+        --overlay-bg: rgba(0,0,0,0.7);
+      }
+      [data-theme="light"] {
+        --bg: #ffffff;
+        --surface: #f3f3f3;
+        --border: #e0e0e0;
+        --border-subtle: #d0d0d0;
+        --text: #1e1e1e;
+        --text-secondary: #616161;
+        --text-dim: #767676;
+        --text-muted: #a0a0a0;
+        --accent: #0078d4;
+        --accent-hover: #106ebe;
+        --accent-active: #005a9e;
+        --danger: #e51400;
+        --danger-hover: #c20000;
+        --success: #16825d;
+        --info: #616161;
+        --shadow: rgba(0,0,0,0.06);
+        --overlay-bg: rgba(0,0,0,0.4);
+      }
       * {
         margin: 0;
         padding: 0;
@@ -20,39 +58,66 @@
       body {
         height: 100%;
         width: 100%;
-        background: #1a1a2e;
-        color: #e0e0e0;
+        background: var(--bg);
+        color: var(--text);
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        transition: background 0.3s, color 0.3s;
       }
 
       .header {
         padding: 20px 16px 12px;
         text-align: center;
-        border-bottom: 1px solid #0f3460;
+        border-bottom: 1px solid var(--border);
+        transition: border-color 0.3s;
+        position: relative;
       }
       .header h1 {
         font-size: 22px;
         font-weight: 700;
       }
       .header h1 span {
-        color: #533483;
+        color: var(--accent);
       }
       .header p {
         font-size: 13px;
-        color: #888;
+        color: var(--text-secondary);
         margin-top: 4px;
+      }
+      .theme-toggle {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        background: none;
+        border: 1px solid var(--border);
+        color: var(--text-dim);
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        transition: color 0.15s, border-color 0.15s, background 0.15s;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .theme-toggle:hover {
+        color: var(--text);
+        border-color: var(--border-subtle);
+        background: var(--border);
       }
 
       .sessions-list {
         padding: 16px;
+        padding-bottom: 80px;
         display: flex;
         flex-direction: column;
         gap: 12px;
       }
 
       .session-card {
-        background: #16213e;
-        border: 1px solid #0f3460;
+        background: var(--surface);
+        border: 1px solid var(--border);
         border-radius: 12px;
         padding: 16px;
         display: flex;
@@ -60,14 +125,14 @@
         gap: 8px;
         text-decoration: none;
         color: inherit;
-        transition: transform 0.2s ease;
+        transition: transform 0.2s ease, border-color 0.15s, background 0.3s;
         cursor: pointer;
         -webkit-tap-highlight-color: transparent;
         position: relative;
         z-index: 1;
       }
       .session-card:hover {
-        border-color: #533483;
+        border-color: var(--accent);
       }
 
       .swipe-wrap {
@@ -81,7 +146,7 @@
         top: 0;
         bottom: 0;
         width: 80px;
-        background: #e74c3c;
+        background: var(--danger);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -123,22 +188,23 @@
         width: 10px;
         height: 10px;
         border-radius: 50%;
-        background: #2ecc71;
+        background: var(--success);
         flex-shrink: 0;
       }
       .session-card .pid {
         font-size: 12px;
-        color: #888;
-        background: #1a1a2e;
+        color: var(--text-secondary);
+        background: var(--bg);
         padding: 2px 8px;
         border-radius: 4px;
+        transition: background 0.3s, color 0.3s;
       }
       .session-card .details {
         display: flex;
         flex-wrap: wrap;
         gap: 6px 16px;
         font-size: 13px;
-        color: #aaa;
+        color: var(--info);
       }
       .session-card .details span {
         display: flex;
@@ -147,43 +213,57 @@
       }
       .session-card .connect-btn {
         align-self: flex-end;
-        background: #533483;
-        color: white;
+        background: var(--accent);
+        color: #ffffff;
         border: none;
         border-radius: 8px;
         padding: 8px 20px;
         font-size: 14px;
         font-weight: 600;
         cursor: pointer;
+        transition: background 0.15s, transform 0.1s;
+      }
+      .session-card .connect-btn:hover {
+        background: var(--accent-hover);
       }
       .session-card .connect-btn:active {
-        background: #6a42a8;
+        background: var(--accent-active);
+        transform: scale(0.95);
       }
 
       .new-session {
-        margin: 0 16px;
+        position: fixed;
+        bottom: 16px;
+        left: 16px;
+        right: 16px;
         padding: 14px;
-        background: transparent;
-        border: 2px dashed #0f3460;
+        background: var(--accent);
+        color: #ffffff;
+        border: none;
         border-radius: 12px;
-        color: #888;
         font-size: 15px;
         font-weight: 600;
         cursor: pointer;
         text-align: center;
-        transition:
-          border-color 0.15s,
-          color 0.15s;
+        z-index: 50;
+        transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+        box-shadow: 0 2px 8px rgba(0, 120, 212, 0.3);
+        padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+      }
+      .new-session:hover {
+        background: var(--accent-hover);
+        box-shadow: 0 4px 12px rgba(0, 120, 212, 0.4);
       }
       .new-session:active {
-        border-color: #533483;
-        color: #e0e0e0;
+        background: var(--accent-active);
+        transform: scale(0.98);
+        box-shadow: 0 1px 4px rgba(0, 120, 212, 0.2);
       }
 
       .empty-state {
         text-align: center;
         padding: 60px 20px;
-        color: #666;
+        color: var(--text-muted);
         font-size: 15px;
       }
 
@@ -195,7 +275,7 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background: rgba(0, 0, 0, 0.7);
+        background: var(--overlay-bg);
         z-index: 100;
         justify-content: center;
         align-items: center;
@@ -204,11 +284,12 @@
         display: flex;
       }
       .modal {
-        background: #16213e;
+        background: var(--surface);
         border-radius: 16px;
         width: 90%;
         max-width: 500px;
         padding: 24px 20px;
+        transition: background 0.3s;
       }
       .modal h2 {
         font-size: 18px;
@@ -217,7 +298,7 @@
       .modal label {
         display: block;
         font-size: 13px;
-        color: #aaa;
+        color: var(--text-secondary);
         margin-bottom: 4px;
         margin-top: 12px;
       }
@@ -225,14 +306,15 @@
       .modal select {
         width: 100%;
         padding: 10px 12px;
-        background: #1a1a2e;
-        border: 1px solid #0f3460;
+        background: var(--bg);
+        border: 1px solid var(--border);
         border-radius: 8px;
-        color: #e0e0e0;
+        color: var(--text);
         font-size: 15px;
         outline: none;
         -webkit-appearance: none;
         appearance: none;
+        transition: background 0.3s, border-color 0.15s, color 0.3s;
       }
       .modal select {
         background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
@@ -243,7 +325,7 @@
       }
       .modal input:focus,
       .modal select:focus {
-        border-color: #533483;
+        border-color: var(--accent);
       }
       .modal-actions {
         display: flex;
@@ -258,14 +340,24 @@
         font-size: 15px;
         font-weight: 600;
         cursor: pointer;
+        transition: background 0.15s, transform 0.1s;
+      }
+      .modal-actions button:active {
+        transform: scale(0.95);
       }
       .btn-cancel {
-        background: #0f3460;
-        color: #e0e0e0;
+        background: var(--border);
+        color: var(--text);
+      }
+      .btn-cancel:hover {
+        background: var(--border-subtle);
       }
       .btn-create {
-        background: #533483;
-        color: white;
+        background: var(--accent);
+        color: #ffffff;
+      }
+      .btn-create:hover {
+        background: var(--accent-hover);
       }
 
       /* Folder browser */
@@ -277,9 +369,9 @@
         flex: 1;
       }
       .cwd-browse-btn {
-        background: #0f3460;
-        color: #e0e0e0;
-        border: 1px solid #0f3460;
+        background: var(--border);
+        color: var(--text);
+        border: 1px solid var(--border);
         border-radius: 8px;
         padding: 0 14px;
         font-size: 18px;
@@ -287,9 +379,14 @@
         flex-shrink: 0;
         display: flex;
         align-items: center;
+        transition: background 0.15s, border-color 0.15s;
+      }
+      .cwd-browse-btn:hover {
+        border-color: var(--accent);
       }
       .cwd-browse-btn:active {
-        background: #533483;
+        background: var(--accent);
+        color: #ffffff;
       }
 
       .browser-overlay {
@@ -299,7 +396,7 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background: rgba(0, 0, 0, 0.8);
+        background: var(--overlay-bg);
         z-index: 200;
         justify-content: center;
         align-items: flex-end;
@@ -308,7 +405,7 @@
         display: flex;
       }
       .browser-sheet {
-        background: #16213e;
+        background: var(--surface);
         border-radius: 16px 16px 0 0;
         width: 100%;
         max-width: 500px;
@@ -316,10 +413,11 @@
         display: flex;
         flex-direction: column;
         overflow: hidden;
+        transition: background 0.3s;
       }
       .browser-header {
         padding: 16px 16px 12px;
-        border-bottom: 1px solid #0f3460;
+        border-bottom: 1px solid var(--border);
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -331,14 +429,18 @@
       .browser-close {
         background: none;
         border: none;
-        color: #888;
+        color: var(--text-dim);
         font-size: 24px;
         cursor: pointer;
         padding: 0 4px;
         line-height: 1;
+        transition: color 0.15s;
+      }
+      .browser-close:hover {
+        color: var(--text);
       }
       .browser-close:active {
-        color: #e0e0e0;
+        color: var(--text);
       }
 
       .browser-breadcrumb {
@@ -349,31 +451,32 @@
         font-size: 13px;
         overflow-x: auto;
         white-space: nowrap;
-        border-bottom: 1px solid #0f3460;
+        border-bottom: 1px solid var(--border);
         flex-shrink: 0;
         -webkit-overflow-scrolling: touch;
       }
       .crumb {
         background: none;
         border: none;
-        color: #888;
+        color: var(--text-dim);
         font-size: 13px;
         cursor: pointer;
         padding: 4px 6px;
         border-radius: 4px;
         flex-shrink: 0;
+        transition: background 0.15s, color 0.15s;
       }
       .crumb:active,
       .crumb:hover {
-        background: #0f3460;
-        color: #e0e0e0;
+        background: var(--border);
+        color: var(--text);
       }
       .crumb.current {
-        color: #e0e0e0;
+        color: var(--text);
         font-weight: 600;
       }
       .crumb-sep {
-        color: #444;
+        color: var(--border-subtle);
         flex-shrink: 0;
       }
 
@@ -386,7 +489,7 @@
       .browser-empty {
         text-align: center;
         padding: 40px 20px;
-        color: #666;
+        color: var(--text-muted);
         font-size: 14px;
       }
       .folder-item {
@@ -395,15 +498,15 @@
         gap: 12px;
         padding: 12px 16px;
         cursor: pointer;
-        border-bottom: 1px solid rgba(15, 52, 96, 0.5);
+        border-bottom: 1px solid rgba(60, 60, 60, 0.5);
         transition: background 0.1s;
         -webkit-tap-highlight-color: transparent;
       }
       .folder-item:active {
-        background: rgba(83, 52, 131, 0.3);
+        background: rgba(0, 120, 212, 0.2);
       }
       .folder-item:hover {
-        background: rgba(83, 52, 131, 0.15);
+        background: rgba(0, 120, 212, 0.1);
       }
       .folder-icon {
         font-size: 22px;
@@ -413,28 +516,28 @@
       }
       .folder-name {
         font-size: 15px;
-        color: #e0e0e0;
+        color: var(--text);
         flex: 1;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
       }
       .folder-arrow {
-        color: #444;
+        color: var(--border-subtle);
         font-size: 18px;
         flex-shrink: 0;
       }
 
       .browser-footer {
         padding: 12px 16px calc(env(safe-area-inset-bottom, 8px) + 8px);
-        border-top: 1px solid #0f3460;
+        border-top: 1px solid var(--border);
         display: flex;
         flex-direction: column;
         gap: 8px;
       }
       .browser-current-path {
         font-size: 12px;
-        color: #888;
+        color: var(--text-dim);
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -442,23 +545,29 @@
       .browser-select-btn {
         width: 100%;
         padding: 12px;
-        background: #533483;
-        color: white;
+        background: var(--accent);
+        color: #ffffff;
         border: none;
         border-radius: 10px;
         font-size: 16px;
         font-weight: 600;
         cursor: pointer;
+        transition: background 0.15s, transform 0.1s;
+      }
+      .browser-select-btn:hover {
+        background: var(--accent-hover);
       }
       .browser-select-btn:active {
-        background: #6a42a8;
+        background: var(--accent-active);
+        transform: scale(0.98);
       }
     </style>
   </head>
   <body>
     <div class="header">
-      <h1>📡 Term<span>Cast</span></h1>
-      <p>Beam your terminal to any device · <span id="version" style="color: #533483"></span></p>
+      <h1>📡 Term<span>Beam</span></h1>
+      <p>Beam your terminal to any device · <span id="version" style="color: var(--accent)"></span></p>
+      <button class="theme-toggle" id="theme-toggle" title="Toggle theme"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button>
     </div>
 
     <div class="sessions-list" id="sessions-list"></div>
@@ -473,7 +582,7 @@
         <select id="sess-shell">
           <option value="">Loading shells…</option>
         </select>
-        <label for="sess-cmd">Initial Command <span style="color:#666;font-weight:normal">(optional)</span></label>
+        <label for="sess-cmd">Initial Command <span style="color:var(--text-muted);font-weight:normal">(optional)</span></label>
         <input type="text" id="sess-cmd" placeholder="e.g. copilot, htop, vim" />
         <label for="sess-cwd">Working Directory</label>
         <div class="cwd-picker">
@@ -535,6 +644,23 @@
     </div>
 
     <script>
+      // Theme
+      function getTheme() { return localStorage.getItem('termbeam-theme') || 'dark'; }
+      function applyTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        document.querySelector('meta[name="theme-color"]').content =
+          theme === 'light' ? '#f3f3f3' : '#1e1e1e';
+        const btn = document.getElementById('theme-toggle');
+        if (btn) btn.innerHTML = theme === 'light'
+          ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>'
+          : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
+        localStorage.setItem('termbeam-theme', theme);
+      }
+      applyTheme(getTheme());
+      document.getElementById('theme-toggle').addEventListener('click', () => {
+        applyTheme(getTheme() === 'light' ? 'dark' : 'light');
+      });
+
       const listEl = document.getElementById('sessions-list');
       const modal = document.getElementById('modal');
 

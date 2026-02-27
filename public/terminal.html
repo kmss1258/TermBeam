@@ -8,13 +8,53 @@
     />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="theme-color" content="#1a1a2e" />
+    <meta name="theme-color" content="#1e1e1e" />
     <title>TermBeam — Terminal</title>
     <link
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.min.css"
     />
     <style>
+      :root {
+        --bg: #1e1e1e;
+        --surface: #252526;
+        --border: #3c3c3c;
+        --border-subtle: #474747;
+        --text: #d4d4d4;
+        --text-secondary: #858585;
+        --text-dim: #6e6e6e;
+        --text-muted: #555555;
+        --accent: #0078d4;
+        --accent-hover: #1a8ae8;
+        --accent-active: #005a9e;
+        --danger: #f14c4c;
+        --danger-hover: #d73a3a;
+        --success: #89d185;
+        --key-bg: #2d2d2d;
+        --key-border: #404040;
+        --key-shadow: rgba(0,0,0,0.4);
+        --overlay-bg: rgba(0,0,0,0.85);
+      }
+      [data-theme="light"] {
+        --bg: #ffffff;
+        --surface: #f3f3f3;
+        --border: #e0e0e0;
+        --border-subtle: #d0d0d0;
+        --text: #1e1e1e;
+        --text-secondary: #616161;
+        --text-dim: #767676;
+        --text-muted: #a0a0a0;
+        --accent: #0078d4;
+        --accent-hover: #106ebe;
+        --accent-active: #005a9e;
+        --danger: #e51400;
+        --danger-hover: #c20000;
+        --success: #16825d;
+        --key-bg: #e8e8e8;
+        --key-border: #d0d0d0;
+        --key-shadow: rgba(0,0,0,0.08);
+        --overlay-bg: rgba(0,0,0,0.5);
+      }
       @font-face {
         font-family: 'NerdFont';
         src: url('https://cdn.jsdelivr.net/gh/ryanoasis/nerd-fonts@latest/patched-fonts/JetBrainsMono/Ligatures/Regular/JetBrainsMonoNerdFont-Regular.ttf')
@@ -41,74 +81,117 @@
       body {
         height: 100%;
         width: 100%;
-        background: #1a1a2e;
-        color: #e0e0e0;
+        background: var(--bg);
+        color: var(--text);
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         overflow: hidden;
         touch-action: manipulation;
-        /* Use dvh to account for mobile browser chrome + keyboard */
         height: 100dvh;
+        transition: background 0.3s, color 0.3s;
       }
 
       #status-bar {
-        height: 36px;
+        height: 40px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 0 12px;
-        background: #16213e;
-        border-bottom: 1px solid #0f3460;
+        padding: 0 8px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
         font-size: 13px;
+        transition: background 0.3s, border-color 0.3s;
       }
       #status-bar .left {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 6px;
       }
       #status-bar .right {
         display: flex;
         align-items: center;
-        gap: 8px;
-      }
-      #back-btn {
-        background: none;
-        border: none;
-        color: #888;
-        font-size: 18px;
-        cursor: pointer;
-        padding: 0 4px;
-      }
-      #back-btn:active {
-        color: #e0e0e0;
-      }
-      #stop-btn {
-        background: #e74c3c;
-        border: none;
-        color: white;
-        font-size: 11px;
-        font-weight: 600;
-        cursor: pointer;
-        padding: 4px 10px;
-        border-radius: 6px;
-        display: flex;
-        align-items: center;
         gap: 4px;
       }
+      .bar-btn {
+        background: none;
+        border: none;
+        color: var(--text-dim);
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.15s, color 0.15s;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .bar-btn:hover {
+        background: var(--border);
+        color: var(--text);
+      }
+      .bar-btn:active {
+        background: var(--accent);
+        color: #ffffff;
+      }
+      .bar-btn svg {
+        display: block;
+      }
+      .bar-group {
+        display: flex;
+        align-items: center;
+        background: var(--bg);
+        border-radius: 8px;
+        padding: 2px;
+        gap: 1px;
+        transition: background 0.3s;
+      }
+      .bar-group .bar-btn {
+        width: 26px;
+        height: 26px;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 600;
+      }
+      #stop-btn {
+        background: none;
+        border: none;
+        color: var(--danger);
+        height: 30px;
+        border-radius: 8px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        padding: 0 10px;
+        font-size: 11px;
+        font-weight: 600;
+        margin-left: 2px;
+        transition: background 0.15s, color 0.15s, transform 0.1s;
+        -webkit-tap-highlight-color: transparent;
+      }
+      #stop-btn:hover {
+        background: var(--danger);
+        color: #ffffff;
+      }
       #stop-btn:active {
-        background: #c0392b;
+        background: var(--danger-hover);
+        color: #ffffff;
+        transform: scale(0.9);
       }
       #status-dot {
         width: 8px;
         height: 8px;
         border-radius: 50%;
-        background: #e74c3c;
+        background: var(--danger);
         display: inline-block;
+        transition: background 0.3s;
       }
       #status-dot.connected {
-        background: #2ecc71;
+        background: var(--success);
       }
       #status-text {
-        color: #aaa;
+        color: var(--text-secondary);
       }
       #session-name {
         font-weight: 600;
@@ -116,10 +199,10 @@
 
       #terminal-container {
         position: absolute;
-        top: 36px;
+        top: 40px;
         left: 0;
         right: 0;
-        bottom: 44px;
+        bottom: 52px;
         padding: 2px;
         overflow: hidden;
       }
@@ -129,46 +212,67 @@
         bottom: 0;
         left: 0;
         right: 0;
-        height: 44px;
+        height: 52px;
         display: flex;
         align-items: center;
-        background: #16213e;
-        border-top: 1px solid #0f3460;
-        padding: 0 3px;
+        background: var(--surface);
+        border-top: 1px solid var(--border);
+        padding: 0 4px;
         padding-bottom: env(safe-area-inset-bottom, 0);
-        gap: 3px;
-        overflow-x: auto;
+        gap: 4px;
         z-index: 50;
+        transition: background 0.3s, border-color 0.3s;
       }
       .key-btn {
-        min-width: 40px;
-        height: 32px;
-        background: #0f3460;
-        color: #e0e0e0;
-        border: 1px solid #1a1a5e;
-        border-radius: 6px;
-        font-size: 11px;
+        min-width: 0;
+        height: 40px;
+        background: var(--key-bg);
+        color: var(--text);
+        border: 1px solid var(--key-border);
+        border-radius: 8px;
+        font-size: 12px;
         font-weight: 600;
         cursor: pointer;
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
         -webkit-tap-highlight-color: transparent;
         user-select: none;
         white-space: nowrap;
-        padding: 0 6px;
-        flex-shrink: 0;
+        padding: 2px 8px;
+        flex: 1 1 0;
+        gap: 0;
+        line-height: 1;
+        transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.1s, box-shadow 0.15s;
+        box-shadow: 0 1px 3px var(--key-shadow), inset 0 1px 0 rgba(255,255,255,0.05);
+      }
+      .key-btn .hint {
+        font-size: 8px;
+        font-weight: 400;
+        opacity: 0.5;
+        margin-top: 1px;
+        letter-spacing: 0.02em;
+      }
+      .key-btn:hover {
+        background: var(--border);
+        border-color: var(--accent);
+        box-shadow: 0 2px 6px var(--key-shadow);
       }
       .key-btn:active {
-        background: #533483;
+        background: var(--accent);
+        color: #ffffff;
+        border-color: var(--accent);
+        transform: scale(0.93);
+        box-shadow: none;
       }
       .key-btn.wide {
-        min-width: 52px;
+        flex: 1.4 1 0;
       }
       .key-sep {
         width: 1px;
         height: 20px;
-        background: #0f3460;
+        background: var(--border);
         flex-shrink: 0;
       }
 
@@ -186,7 +290,7 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background: rgba(0, 0, 0, 0.85);
+        background: var(--overlay-bg);
         z-index: 100;
         flex-direction: column;
         align-items: center;
@@ -198,6 +302,7 @@
       }
       #reconnect-overlay .msg {
         font-size: 17px;
+        color: #ffffff;
       }
       .overlay-actions {
         display: flex;
@@ -210,50 +315,60 @@
         font-size: 15px;
         font-weight: 600;
         cursor: pointer;
+        transition: background 0.15s, transform 0.1s;
+      }
+      .overlay-actions button:active {
+        transform: scale(0.95);
       }
       #reconnect-btn {
-        background: #533483;
-        color: white;
+        background: var(--accent);
+        color: #ffffff;
+      }
+      #reconnect-btn:hover {
+        background: var(--accent-hover);
       }
       #back-to-sessions {
-        background: #0f3460;
-        color: #e0e0e0;
+        background: rgba(255,255,255,0.15);
+        color: #ffffff;
       }
+      #back-to-sessions:hover {
+        background: rgba(255,255,255,0.25);
+      }
+
     </style>
   </head>
   <body>
     <div id="status-bar">
       <div class="left">
-        <button id="back-btn" onclick="location.href = '/'">‹</button>
+        <button class="bar-btn" id="back-btn" onclick="location.href = '/'" title="Back to sessions"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
         <span id="status-dot"></span>
         <span id="session-name">…</span>
       </div>
       <div class="right">
         <span id="status-text">Connecting…</span>
-        <span id="version-text" style="font-size: 11px; color: #555"></span>
-        <button id="stop-btn" title="Stop session">■ Stop</button>
+        <span id="version-text" style="font-size: 11px; color: var(--text-muted)"></span>
+        <div class="bar-group">
+          <button class="bar-btn" id="zoom-out" title="Decrease font size">−</button>
+          <button class="bar-btn" id="zoom-in" title="Increase font size">+</button>
+        </div>
+        <button class="bar-btn" id="theme-toggle" title="Toggle theme"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button>
+        <button id="stop-btn" title="Stop session"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>Stop</button>
       </div>
     </div>
 
     <div id="terminal-container"></div>
 
     <div id="key-bar">
-      <button class="key-btn" data-key="&#x1b;[A">↑</button>
-      <button class="key-btn" data-key="&#x1b;[B">↓</button>
-      <button class="key-btn" data-key="&#x1b;[D">←</button>
-      <button class="key-btn" data-key="&#x1b;[C">→</button>
+      <button class="key-btn" data-key="&#x1b;[A" title="Previous command">↑<span class="hint">prev</span></button>
+      <button class="key-btn" data-key="&#x1b;[B" title="Next command">↓<span class="hint">next</span></button>
+      <button class="key-btn" data-key="&#x1b;[D" title="Left">←</button>
+      <button class="key-btn" data-key="&#x1b;[C" title="Right">→</button>
+      <button class="key-btn" data-key="&#x1b;[H" title="Home">Home</button>
+      <button class="key-btn" data-key="&#x1b;[F" title="End">End</button>
       <div class="key-sep"></div>
-      <button class="key-btn wide" data-key="&#x09;">Tab</button>
-      <button class="key-btn wide" data-key="&#x0d;">Enter</button>
-      <button class="key-btn" data-key="&#x1b;">Esc</button>
+      <button class="key-btn wide" data-key="&#x09;" title="Autocomplete">Tab</button>
       <div class="key-sep"></div>
-      <button class="key-btn" data-key="&#x03;">^C</button>
-      <button class="key-btn" data-key="&#x04;">^D</button>
-      <button class="key-btn" data-key="&#x1a;">^Z</button>
-      <button class="key-btn" data-key="&#x0c;">^L</button>
-      <div class="key-sep"></div>
-      <button class="key-btn" id="zoom-out">A-</button>
-      <button class="key-btn" id="zoom-in">A+</button>
+      <button class="key-btn" data-key="&#x03;" title="Interrupt process">^C<span class="hint">stop</span></button>
     </div>
 
     <div id="reconnect-overlay">
@@ -277,6 +392,50 @@
       const statusText = document.getElementById('status-text');
       const sessionName = document.getElementById('session-name');
       const reconnectOverlay = document.getElementById('reconnect-overlay');
+      let sessionExited = false;
+      let reconnectTimer = null;
+      let reconnectDelay = 3000;
+      const MAX_RECONNECT_DELAY = 30000;
+
+      // Terminal themes
+      const darkTermTheme = {
+        background: '#1e1e1e', foreground: '#d4d4d4', cursor: '#aeafad', cursorAccent: '#1e1e1e',
+        selectionBackground: 'rgba(38, 79, 120, 0.5)',
+        black: '#000000', red: '#cd3131', green: '#0dbc79', yellow: '#e5e510',
+        blue: '#2472c8', magenta: '#bc3fbc', cyan: '#11a8cd', white: '#e5e5e5',
+        brightBlack: '#666666', brightRed: '#f14c4c', brightGreen: '#23d18b',
+        brightYellow: '#f5f543', brightBlue: '#3b8eea', brightMagenta: '#d670d6',
+        brightCyan: '#29b8db', brightWhite: '#e5e5e5',
+      };
+      const lightTermTheme = {
+        background: '#ffffff', foreground: '#1e1e1e', cursor: '#000000', cursorAccent: '#ffffff',
+        selectionBackground: 'rgba(0, 120, 215, 0.3)',
+        black: '#000000', red: '#cd3131', green: '#00bc7c', yellow: '#949800',
+        blue: '#0451a5', magenta: '#bc05bc', cyan: '#0598bc', white: '#555555',
+        brightBlack: '#666666', brightRed: '#cd3131', brightGreen: '#14ce14',
+        brightYellow: '#b5ba00', brightBlue: '#0451a5', brightMagenta: '#bc05bc',
+        brightCyan: '#0598bc', brightWhite: '#a5a5a5',
+      };
+
+      function getTheme() { return localStorage.getItem('termbeam-theme') || 'dark'; }
+      function applyTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        document.querySelector('meta[name="theme-color"]').content =
+          theme === 'light' ? '#f3f3f3' : '#1e1e1e';
+        const btn = document.getElementById('theme-toggle');
+        if (btn) btn.innerHTML = theme === 'light'
+          ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>'
+          : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
+        localStorage.setItem('termbeam-theme', theme);
+        if (window._term) {
+          window._term.options.theme = theme === 'light' ? lightTermTheme : darkTermTheme;
+        }
+      }
+      applyTheme(getTheme());
+
+      document.getElementById('theme-toggle').addEventListener('click', () => {
+        applyTheme(getTheme() === 'light' ? 'dark' : 'light');
+      });
 
       // Load Nerd Font, then init terminal
       const nerdFont = new FontFace(
@@ -307,32 +466,11 @@
           fontWeightBold: 'bold',
           letterSpacing: 0,
           lineHeight: 1.1,
-          theme: {
-            background: '#1a1a2e',
-            foreground: '#e0e0e0',
-            cursor: '#533483',
-            cursorAccent: '#1a1a2e',
-            selectionBackground: 'rgba(83, 52, 131, 0.4)',
-            black: '#1a1a2e',
-            red: '#e74c3c',
-            green: '#2ecc71',
-            yellow: '#f1c40f',
-            blue: '#3498db',
-            magenta: '#9b59b6',
-            cyan: '#1abc9c',
-            white: '#ecf0f1',
-            brightBlack: '#636e72',
-            brightRed: '#ff6b6b',
-            brightGreen: '#55efc4',
-            brightYellow: '#ffeaa7',
-            brightBlue: '#74b9ff',
-            brightMagenta: '#a29bfe',
-            brightCyan: '#81ecec',
-            brightWhite: '#ffffff',
-          },
+          theme: getTheme() === 'light' ? lightTermTheme : darkTermTheme,
           allowProposedApi: true,
           scrollback: 10000,
         });
+        window._term = term;
 
         const fitAddon = new window.FitAddon.FitAddon();
         const webLinksAddon = new window.WebLinksAddon.WebLinksAddon();
@@ -351,8 +489,9 @@
 
           ws.onopen = () => {
             statusDot.className = 'connected';
-            statusText.textContent = 'Connected';
+            statusText.textContent = '';
             reconnectOverlay.classList.remove('visible');
+            reconnectDelay = 3000;
             // Attach to session
             ws.send(JSON.stringify({ type: 'attach', sessionId }));
           };
@@ -369,6 +508,8 @@
                   ws.send(JSON.stringify({ type: 'resize', cols: dims.cols, rows: dims.rows }));
                 }
               } else if (msg.type === 'exit') {
+                sessionExited = true;
+                if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
                 statusText.textContent = `Exited (code ${msg.code})`;
                 statusDot.className = '';
                 reconnectOverlay.querySelector('.msg').textContent =
@@ -388,6 +529,9 @@
             statusDot.className = '';
             statusText.textContent = 'Disconnected';
             reconnectOverlay.classList.add('visible');
+            if (!sessionExited) {
+              scheduleReconnect();
+            }
           };
 
           ws.onerror = () => {
@@ -415,7 +559,7 @@
         window.addEventListener('resize', doResize);
         screen.orientation?.addEventListener('change', () => setTimeout(doResize, 150));
 
-        // Key bar (skip zoom buttons — handled separately)
+        // Key bar
         // Use mousedown + preventDefault to stop buttons from stealing focus/opening keyboard
         document.getElementById('key-bar').addEventListener('mousedown', (e) => {
           // Only prevent default on buttons, not the scrollable bar itself
@@ -429,34 +573,43 @@
           .addEventListener('touchstart', () => {}, { passive: true });
         document.getElementById('key-bar').addEventListener('click', (e) => {
           const btn = e.target.closest('.key-btn');
-          if (!btn || btn.id === 'zoom-in' || btn.id === 'zoom-out') return;
+          if (!btn) return;
           if (ws && ws.readyState === 1) {
             ws.send(JSON.stringify({ type: 'input', data: btn.dataset.key }));
           }
           // Don't call term.focus() here — it opens the soft keyboard
         });
 
-        // Zoom
-        const MIN_FONT = 2,
-          MAX_FONT = 28;
-        let fontSize = parseInt(localStorage.getItem('termbeam-fontsize') || '8', 10);
-
+        // Zoom (status bar)
+        const MIN_FONT = 2, MAX_FONT = 28;
+        let fontSize = savedFontSize;
         function applyZoom(size) {
           fontSize = Math.max(MIN_FONT, Math.min(MAX_FONT, size));
           term.options.fontSize = fontSize;
           localStorage.setItem('termbeam-fontsize', fontSize);
           doResize();
         }
+        document.getElementById('zoom-in').addEventListener('click', () => applyZoom(fontSize + 2));
+        document.getElementById('zoom-out').addEventListener('click', () => applyZoom(fontSize - 2));
 
-        document.getElementById('zoom-in').addEventListener('click', () => {
-          applyZoom(fontSize + 2);
-        });
-        document.getElementById('zoom-out').addEventListener('click', () => {
-          applyZoom(fontSize - 2);
-        });
+        function scheduleReconnect() {
+          if (reconnectTimer) clearTimeout(reconnectTimer);
+          const seconds = Math.round(reconnectDelay / 1000);
+          reconnectOverlay.querySelector('.msg').textContent =
+            `Disconnected — reconnecting in ${seconds}s…`;
+          reconnectTimer = setTimeout(() => {
+            reconnectTimer = null;
+            reconnectOverlay.querySelector('.msg').textContent = 'Reconnecting…';
+            reconnectDelay = Math.min(reconnectDelay * 1.5, MAX_RECONNECT_DELAY);
+            connect();
+          }, reconnectDelay);
+        }
 
         // Reconnect
         document.getElementById('reconnect-btn').addEventListener('click', () => {
+          if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+          sessionExited = false;
+          reconnectDelay = 3000;
           term.clear();
           connect();
         });
@@ -486,11 +639,11 @@
             if (keyboardHeight > 50) {
               // Keyboard is open — move key bar above it
               keyBar.style.bottom = keyboardHeight + 'px';
-              container.style.bottom = 44 + keyboardHeight + 'px';
+              container.style.bottom = 52 + keyboardHeight + 'px';
             } else {
               // Keyboard closed
               keyBar.style.bottom = '0px';
-              container.style.bottom = '44px';
+              container.style.bottom = '52px';
             }
             // Refit terminal to new available space
             setTimeout(() => doResize(), 50);
