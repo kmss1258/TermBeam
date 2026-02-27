@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.0.5] - 2026-02-27
+
+- feat: simplify version bump logic in release workflow
+- feat: implement shell detection and initial command execution in sessions
+
 ## [0.0.4] - 2026-02-27
 
 - feat: add Remotion demo video project (#6)
