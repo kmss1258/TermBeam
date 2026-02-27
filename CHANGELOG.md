@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.0.4] - 2026-02-27
+
+- feat: add Remotion demo video project (#6)
+- chore(ci): bump actions/checkout from v4 to v6
+- chore(ci): bump actions/setup-node from 4 to 6 (#3)
+- chore(ci): bump actions/setup-python from 5 to 6 (#2)
+- chore(ci): bump actions/upload-pages-artifact from 3 to 4 (#1)
+
 ## [0.0.3] - 2026-02-26
 
 - fix: rewrite CHANGELOG update to avoid sed/awk failures on Linux
