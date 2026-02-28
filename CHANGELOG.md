@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.1.0] - 2026-02-28
+
+- feat: docs accuracy, side panel UX, SW font caching, test coverage (#22)
+
 ## [0.0.9] - 2026-02-27
 
 - feat: implement process tree traversal for Windows to detect user shell
