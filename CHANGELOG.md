@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.4] - 2026-03-01
+
+- fix: add postinstall to fix node-pty spawn-helper permissions
+
 ## [1.0.3] - 2026-03-01
 
 - fix(cli): validate detected shell against /etc/shells allowlist
