@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.2.0] - 2026-03-01
+
+- feat: add preview proxy, Docker support, and UI improvements
+
 ## [1.1.1] - 2026-03-01
 
 - feat(tunnel): add findDevtunnel function and improve error handling for tunnel mode
