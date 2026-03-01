@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.1.1] - 2026-03-01
+
+- feat(tunnel): add findDevtunnel function and improve error handling for tunnel mode
+
 ## [1.1.0] - 2026-03-01
 
 - fix(docs): update terminology from one-time tokens to share tokens for clarity
