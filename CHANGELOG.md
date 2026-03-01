@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.2] - 2026-03-01
+
+- fix(cli): skip non-shell parent processes in shell detection
+
 ## [1.0.1] - 2026-03-01
 
 - fix: detect npx symlink entry point without .js extension
