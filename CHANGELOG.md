@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.7] - 2026-03-01
+
+- fix(security): allow CDN in connect-src CSP for font loading
+
 ## [1.0.6] - 2026-03-01
 
 - fix(routes): resolve static file 404 when installed via npx
