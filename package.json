@@ -14,7 +14,8 @@
     "prepare": "husky",
     "format": "prettier --write .",
     "lint": "node --check src/*.js bin/*.js",
-    "prepublishOnly": "npm test"
+    "prepublishOnly": "npm test",
+    "postinstall": "node -e \"try{const p=require('path'),fs=require('fs'),d=p.join(__dirname,'node_modules','node-pty','prebuilds');if(fs.existsSync(d)){for(const a of fs.readdirSync(d)){const s=p.join(d,a,'spawn-helper');try{fs.chmodSync(s,0o755)}catch{}}}}catch{}\""
   },
   "keywords": [
     "terminal",
