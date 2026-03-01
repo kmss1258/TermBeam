@@ -105,8 +105,9 @@ termbeam --host 127.0.0.1        # restrict to localhost (default: 0.0.0.0)
 | `--persisted-tunnel`  | Create a reusable devtunnel URL          | Off              |
 | `--port <port>`       | Server port                              | `3456`           |
 | `--host <addr>`       | Bind address                             | `0.0.0.0`        |
+| `--log-level <level>` | Log verbosity (error/warn/info/debug) | `info` |
 
-Environment variables: `PORT`, `TERMBEAM_PASSWORD`, `TERMBEAM_CWD`, `SHELL` (Unix fallback), `COMSPEC` (Windows fallback). See [Configuration docs](https://dorlugasigal.github.io/TermBeam/configuration/).
+Environment variables: `PORT`, `TERMBEAM_PASSWORD`, `TERMBEAM_CWD`, `TERMBEAM_LOG_LEVEL`, `SHELL` (Unix fallback), `COMSPEC` (Windows fallback). See [Configuration docs](https://dorlugasigal.github.io/TermBeam/configuration/).
 
 ## Security
 
