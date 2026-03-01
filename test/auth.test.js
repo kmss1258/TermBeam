@@ -170,11 +170,15 @@ describe('Auth', () => {
       let count = 0;
       const req = { socket: { remoteAddress: '10.0.0.1' } };
       const res = {
-        status() { return this; },
+        status() {
+          return this;
+        },
         json() {},
       };
       for (let i = 0; i < 5; i++) {
-        auth.rateLimit(req, res, () => { count++; });
+        auth.rateLimit(req, res, () => {
+          count++;
+        });
       }
       assert.strictEqual(count, 5);
     });
@@ -185,6 +189,47 @@ describe('Auth', () => {
       const auth = createAuth('pw');
       assert.ok(auth.loginHTML.includes('TermBeam'));
       assert.ok(auth.loginHTML.includes('Term<span>Beam</span>'));
+    });
+  });
+
+  describe('share tokens', () => {
+    it('should generate a valid share token', () => {
+      const auth = createAuth('pw');
+      const token = auth.generateShareToken();
+      assert.ok(token);
+      assert.strictEqual(typeof token, 'string');
+      assert.ok(token.length > 0);
+    });
+
+    it('should validate a valid share token', () => {
+      const auth = createAuth('pw');
+      const token = auth.generateShareToken();
+      assert.strictEqual(auth.validateShareToken(token), true);
+    });
+
+    it('should allow reuse within expiry window', () => {
+      const auth = createAuth('pw');
+      const token = auth.generateShareToken();
+      assert.strictEqual(auth.validateShareToken(token), true);
+      assert.strictEqual(auth.validateShareToken(token), true);
+    });
+
+    it('should reject an unknown share token', () => {
+      const auth = createAuth('pw');
+      assert.strictEqual(auth.validateShareToken('not-a-real-token'), false);
+    });
+
+    it('should reject an expired share token', () => {
+      const auth = createAuth('pw');
+      const token = auth.generateShareToken();
+      // Simulate expiry by overriding Date.now temporarily
+      const realNow = Date.now;
+      Date.now = () => realNow() + 6 * 60 * 1000; // advance 6 minutes past 5-min expiry
+      try {
+        assert.strictEqual(auth.validateShareToken(token), false);
+      } finally {
+        Date.now = realNow;
+      }
     });
   });
 });

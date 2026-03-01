@@ -61,19 +61,53 @@ const LOGIN_HTML = `<!DOCTYPE html>
 function createAuth(password) {
   const tokens = new Map();
   const authAttempts = new Map();
+  const shareTokens = new Map(); // share tokens: token -> expiry
 
   // Periodically clean up expired tokens and stale rate-limit entries
-  setInterval(() => {
-    const now = Date.now();
-    for (const [token, expiry] of tokens) {
-      if (now > expiry) tokens.delete(token);
+  setInterval(
+    () => {
+      const now = Date.now();
+      for (const [token, expiry] of tokens) {
+        if (now > expiry) tokens.delete(token);
+      }
+      for (const [ip, attempts] of authAttempts) {
+        const recent = attempts.filter((t) => now - t < 60 * 1000);
+        if (recent.length === 0) authAttempts.delete(ip);
+        else authAttempts.set(ip, recent);
+      }
+      for (const [st, expiry] of shareTokens) {
+        if (now > expiry) shareTokens.delete(st);
+      }
+    },
+    60 * 60 * 1000,
+  ).unref();
+
+  function generateShareToken() {
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiry = Date.now() + 5 * 60 * 1000;
+    shareTokens.set(token, expiry); // 5 minute expiry
+    log.info(`Share: created ${token.slice(0, 8)}… (expires in 5m)`);
+    return token;
+  }
+
+  function validateShareToken(token) {
+    const expiry = shareTokens.get(token);
+    const tag = token.slice(0, 8);
+    if (!expiry) {
+      log.warn(`Share: unknown token ${tag}…`);
+      return false;
     }
-    for (const [ip, attempts] of authAttempts) {
-      const recent = attempts.filter((t) => now - t < 60 * 1000);
-      if (recent.length === 0) authAttempts.delete(ip);
-      else authAttempts.set(ip, recent);
+    const remaining = Math.round((expiry - Date.now()) / 1000);
+    if (remaining <= 0) {
+      shareTokens.delete(token);
+      log.warn(`Share: expired token ${tag}…`);
+      return false;
     }
-  }, 60 * 60 * 1000).unref();
+    const min = Math.floor(remaining / 60);
+    const sec = remaining % 60;
+    log.info(`Share: valid token ${tag}… (${min}m ${sec}s remaining)`);
+    return true;
+  }
 
   function generateToken() {
     const token = crypto.randomBytes(32).toString('hex');
@@ -129,6 +163,8 @@ function createAuth(password) {
     password,
     generateToken,
     validateToken,
+    generateShareToken,
+    validateShareToken,
     middleware,
     rateLimit,
     parseCookies,

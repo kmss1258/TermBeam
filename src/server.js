@@ -40,6 +40,7 @@ function createTermBeamServer(overrides = {}) {
 
   // --- Express ---
   const app = express();
+  app.set('trust proxy', 'loopback');
   app.use(express.json());
   app.use(cookieParser());
   app.use((_req, res, next) => {
@@ -57,7 +58,8 @@ function createTermBeamServer(overrides = {}) {
   const server = http.createServer(app);
   const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 1 * 1024 * 1024 });
 
-  setupRoutes(app, { auth, sessions, config });
+  const state = { shareBaseUrl: null };
+  setupRoutes(app, { auth, sessions, config, state });
   setupWebSocket(wss, { auth, sessions });
 
   // --- Lifecycle ---
@@ -111,6 +113,7 @@ function createTermBeamServer(overrides = {}) {
         console.log('');
         const isLanReachable =
           config.host === '0.0.0.0' || config.host === '::' || config.host === ip;
+        state.shareBaseUrl = isLanReachable ? localUrl : `http://localhost:${config.port}`;
         const gn = '\x1b[38;5;114m'; // green
         const dm = '\x1b[2m'; // dim
 
@@ -119,6 +122,7 @@ function createTermBeamServer(overrides = {}) {
           const tunnel = await startTunnel(config.port, { persisted: config.persistedTunnel });
           if (tunnel) {
             publicUrl = tunnel.url;
+            state.shareBaseUrl = publicUrl;
           } else {
             console.log('  ⚠️  Tunnel failed to start. Using LAN only.');
           }
@@ -138,17 +142,19 @@ function createTermBeamServer(overrides = {}) {
         }
 
         const qrUrl = publicUrl || (isLanReachable ? localUrl : `http://localhost:${config.port}`);
+        const qrDisplayUrl = qrUrl; // clean URL shown in console text
+        const qrCodeUrl = config.password ? `${qrUrl}?ott=${auth.generateShareToken()}` : qrUrl;
         console.log('');
         console.log(`  ${dm}📋 Clipboard requires HTTPS — use the Public or localhost URL${rs}`);
         console.log('');
         try {
-          const qr = await QRCode.toString(qrUrl, { type: 'terminal', small: true });
+          const qr = await QRCode.toString(qrCodeUrl, { type: 'terminal', small: true });
           console.log(qr);
         } catch {
           /* ignore */
         }
 
-        console.log(`  Scan the QR code or open: ${qrUrl}`);
+        console.log(`  Scan the QR code or open: ${qrDisplayUrl}`);
         if (config.password) console.log(`  Password: ${gn}${config.password}${rs}`);
         console.log('');
 
