@@ -12,7 +12,7 @@ const { createAuth } = require('./auth');
 const { SessionManager } = require('./sessions');
 const { setupRoutes, cleanupUploadedFiles } = require('./routes');
 const { setupWebSocket } = require('./websocket');
-const { startTunnel, cleanupTunnel } = require('./tunnel');
+const { startTunnel, cleanupTunnel, findDevtunnel } = require('./tunnel');
 
 // --- Helpers ---
 function getLocalIP() {
@@ -75,6 +75,29 @@ function createTermBeamServer(overrides = {}) {
   }
 
   function start() {
+    // Fail early if tunnel mode is on but devtunnel CLI is not installed
+    if (config.useTunnel && !findDevtunnel()) {
+      log.error('❌ devtunnel CLI is not installed.');
+      log.error('');
+      log.error('  TermBeam uses tunnels by default for remote access.');
+      log.error('  Install the Azure Dev Tunnels CLI, or use --no-tunnel for LAN-only mode.');
+      log.error('');
+      log.error('  Install it:');
+      log.error('    Windows:  winget install Microsoft.devtunnel');
+      log.error(
+        '             or: Invoke-WebRequest -Uri https://aka.ms/TunnelsCliDownload/win-x64 -OutFile devtunnel.exe',
+      );
+      log.error('    macOS:    brew install --cask devtunnel');
+      log.error('    Linux:    curl -sL https://aka.ms/DevTunnelCliInstall | bash');
+      log.error('');
+      log.error('  Then restart your terminal and try again.');
+      log.error(
+        '  Docs: https://learn.microsoft.com/en-us/azure/developer/dev-tunnels/get-started',
+      );
+      log.error('');
+      process.exit(1);
+    }
+
     return new Promise((resolve) => {
       server.listen(config.port, config.host, async () => {
         const ip = getLocalIP();

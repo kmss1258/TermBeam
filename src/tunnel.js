@@ -89,7 +89,8 @@ async function startTunnel(port, options = {}) {
   if (!found) {
     log.error('❌ devtunnel CLI is not installed.');
     log.error('');
-    log.error('  The --tunnel flag requires the Azure Dev Tunnels CLI.');
+    log.error('  TermBeam uses tunnels by default for remote access.');
+    log.error('  Install the Azure Dev Tunnels CLI, or use --no-tunnel for LAN-only mode.');
     log.error('');
     log.error('  Install it:');
     log.error('    Windows:  winget install Microsoft.devtunnel');
@@ -120,19 +121,24 @@ async function startTunnel(port, options = {}) {
     } catch {}
 
     if (!loggedIn) {
-      log.info('devtunnel not logged in, launching login...');
-      log.info('A browser window will open for authentication.');
+      log.info('devtunnel not logged in, launching browser login (30s timeout)...');
       try {
-        execFileSync(devtunnelCmd, ['user', 'login'], { stdio: 'inherit' });
-      } catch (loginErr) {
-        log.error('');
-        log.error('  DevTunnel login failed. To use tunnels, run:');
-        log.error('    devtunnel user login');
-        log.error('');
-        log.error('  Or start without a tunnel:');
-        log.error('    termbeam --no-tunnel');
-        log.error('');
-        return null;
+        execFileSync(devtunnelCmd, ['user', 'login'], { stdio: 'inherit', timeout: 30000 });
+      } catch {
+        log.info('Browser login failed or unavailable, falling back to device code flow...');
+        log.info('A code will be displayed — open the URL on any device to authenticate.');
+        try {
+          execFileSync(devtunnelCmd, ['user', 'login', '-d'], { stdio: 'inherit' });
+        } catch (loginErr) {
+          log.error('');
+          log.error('  DevTunnel login failed. To use tunnels, run:');
+          log.error('    devtunnel user login');
+          log.error('');
+          log.error('  Or start without a tunnel:');
+          log.error('    termbeam --no-tunnel');
+          log.error('');
+          return null;
+        }
       }
     }
 
@@ -257,4 +263,4 @@ function cleanupTunnel() {
   }
 }
 
-module.exports = { startTunnel, cleanupTunnel };
+module.exports = { startTunnel, cleanupTunnel, findDevtunnel };
