@@ -293,16 +293,16 @@ const TerminalScreen: React.FC<{
         {typingDone && frame >= RUN_START && (
           <div style={{ marginTop: 8 }}>
             {/* Progress bar */}
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-              <div style={{ width: 120, height: 4, background: "#3c3c3c", borderRadius: 2, overflow: "hidden" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+              <div style={{ width: 280, height: 14, background: "#3c3c3c", borderRadius: 7, overflow: "hidden" }}>
                 <div style={{
                   width: `${Math.min(100, (frame - RUN_START) * 5)}%`,
                   height: "100%",
                   background: frame - RUN_START >= 20 ? "#f44747" : "#0078d4",
-                  borderRadius: 2,
+                  borderRadius: 7,
                 }} />
               </div>
-              <span style={{ fontSize: 16, color: "#858585" }}>
+              <span style={{ fontSize: 20, color: "#858585", fontWeight: 600 }}>
                 {frame - RUN_START >= 20 ? "failed" : "running..."}
               </span>
             </div>

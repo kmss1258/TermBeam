@@ -128,7 +128,7 @@ export const CliTerminal: React.FC = () => {
   // Phase 3: Diagonal angle when output is done
   const zoomOutStart = OUTPUT_START;
   const outputDoneFrame = OUTPUT_START + 50; // all output rendered by ~50 frames after OUTPUT_START
-  const angleStart = outputDoneFrame + 15;
+  const angleStart = outputDoneFrame + 5;
 
   let zoomScale = 1;
   let zoomTranslateY = 0;
