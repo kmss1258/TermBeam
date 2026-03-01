@@ -76,7 +76,10 @@ function getWindowsAncestors(startPid, maxDepth = 4) {
       if (cols.length <= Math.max(nameIdx, pidIdx, ppidIdx)) continue;
       const pid = parseInt(cols[pidIdx], 10);
       if (Number.isFinite(pid)) {
-        processes.set(pid, { name: cols[nameIdx].trim().toLowerCase(), ppid: parseInt(cols[ppidIdx], 10) });
+        processes.set(pid, {
+          name: cols[nameIdx].trim().toLowerCase(),
+          ppid: parseInt(cols[ppidIdx], 10),
+        });
       }
     }
 
@@ -137,8 +140,14 @@ function getDefaultShell() {
     const comm = result.trim();
     if (comm) {
       const shell = comm.startsWith('-') ? comm.slice(1) : comm;
-      log.debug(`Detected parent shell: ${shell}`);
-      return shell;
+      log.debug(`Detected parent process: ${shell}`);
+      // Validate it looks like a real shell (single token, no spaces)
+      // When run via npx, comm can be "npm exec ..." which is not a shell
+      if (!shell.includes(' ') && !shell.startsWith('npm') && !shell.startsWith('node')) {
+        log.debug(`Using detected shell: ${shell}`);
+        return shell;
+      }
+      log.debug(`Parent process "${shell}" is not a shell, falling back`);
     }
   } catch (err) {
     log.debug(`Could not detect parent shell: ${err.message}`);
@@ -157,10 +166,16 @@ function parseArgs() {
   // Resolve log level early (env + args) so shell detection logs are visible
   let logLevel = process.env.TERMBEAM_LOG_LEVEL || 'info';
   for (const arg of process.argv.slice(2)) {
-    if (arg.startsWith('--log-level=')) { logLevel = arg.split('=')[1]; break; }
+    if (arg.startsWith('--log-level=')) {
+      logLevel = arg.split('=')[1];
+      break;
+    }
   }
   for (let i = 2; i < process.argv.length; i++) {
-    if (process.argv[i] === '--log-level' && process.argv[i + 1]) { logLevel = process.argv[i + 1]; break; }
+    if (process.argv[i] === '--log-level' && process.argv[i + 1]) {
+      logLevel = process.argv[i + 1];
+      break;
+    }
   }
   log.setLevel(logLevel);
 
@@ -227,7 +242,19 @@ function parseArgs() {
   const { getVersion } = require('./version');
   const version = getVersion();
 
-  return { port, host, password, useTunnel, persistedTunnel, shell, shellArgs, cwd, defaultShell, version, logLevel };
+  return {
+    port,
+    host,
+    password,
+    useTunnel,
+    persistedTunnel,
+    shell,
+    shellArgs,
+    cwd,
+    defaultShell,
+    version,
+    logLevel,
+  };
 }
 
 module.exports = { parseArgs, printHelp };

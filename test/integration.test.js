@@ -1,6 +1,8 @@
 const { describe, it, after } = require('node:test');
 const assert = require('node:assert');
 const http = require('http');
+const { spawn } = require('child_process');
+const path = require('path');
 const WebSocket = require('ws');
 const { createTermBeamServer } = require('../src/server');
 
@@ -59,8 +61,14 @@ function waitForOpen(ws, timeout = 5000) {
   return new Promise((resolve, reject) => {
     if (ws.readyState === WebSocket.OPEN) return resolve();
     const timer = setTimeout(() => reject(new Error('WebSocket open timeout')), timeout);
-    ws.on('open', () => { clearTimeout(timer); resolve(); });
-    ws.on('error', (err) => { clearTimeout(timer); reject(err); });
+    ws.on('open', () => {
+      clearTimeout(timer);
+      resolve();
+    });
+    ws.on('error', (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
   });
 }
 
@@ -117,7 +125,10 @@ describe('Integration', () => {
           port: inst.port,
           path: '/api/auth',
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(authBody) },
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(authBody),
+          },
         },
         authBody,
       );
@@ -176,7 +187,11 @@ describe('Integration', () => {
 
       // Send input and wait for output containing the echo marker
       const marker = `helloTB${Date.now()}`;
-      const outputPromise = waitForMessage(ws, (m) => m.type === 'output' && m.data.includes(marker), 15000);
+      const outputPromise = waitForMessage(
+        ws,
+        (m) => m.type === 'output' && m.data.includes(marker),
+        15000,
+      );
       ws.send(JSON.stringify({ type: 'input', data: `echo ${marker}\r` }));
       const outputMsg = await outputPromise;
       assert.ok(outputMsg.data.includes(marker), 'Output should contain the echoed marker');
@@ -235,7 +250,10 @@ describe('Integration', () => {
           port: inst.port,
           path: '/api/sessions',
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(createBody) },
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(createBody),
+          },
         },
         createBody,
       );
@@ -277,7 +295,10 @@ describe('Integration', () => {
             resolve();
           }
         }, 100);
-        setTimeout(() => { clearInterval(poll); resolve(); }, 5000);
+        setTimeout(() => {
+          clearInterval(poll);
+          resolve();
+        }, 5000);
       });
 
       // GET /api/sessions should only have the default session
@@ -334,7 +355,10 @@ describe('Integration', () => {
             port: inst.port,
             path: '/api/auth',
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(wrongBody) },
+            headers: {
+              'Content-Type': 'application/json',
+              'Content-Length': Buffer.byteLength(wrongBody),
+            },
           },
           wrongBody,
         );
@@ -348,11 +372,91 @@ describe('Integration', () => {
           port: inst.port,
           path: '/api/auth',
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(wrongBody) },
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(wrongBody),
+          },
         },
         wrongBody,
       );
       assert.strictEqual(res6.statusCode, 429, '6th attempt should be rate limited');
+    });
+  });
+
+  describe('CLI entry point produces output (npx simulation)', () => {
+    it('should print the banner when invoked via a wrapper script', async () => {
+      const entryPoint = path.resolve(__dirname, '..', 'bin', 'termbeam.js');
+      const output = await new Promise((resolve, reject) => {
+        let buf = '';
+        const child = spawn(process.execPath, [entryPoint, '--no-tunnel', '--no-password'], {
+          env: { ...process.env, TERMBEAM_LOG_LEVEL: 'error', PORT: '0' },
+          stdio: ['ignore', 'pipe', 'pipe'],
+        });
+        child.stdout.on('data', (d) => {
+          buf += d;
+        });
+        child.stderr.on('data', (d) => {
+          buf += d;
+        });
+        const timer = setTimeout(() => {
+          child.kill('SIGTERM');
+          resolve(buf);
+        }, 5000);
+        child.on('error', (err) => {
+          clearTimeout(timer);
+          reject(err);
+        });
+        child.on('exit', () => {
+          clearTimeout(timer);
+          resolve(buf);
+        });
+      });
+      assert.ok(
+        output.includes('Beam your terminal') || output.includes('TERMBEAM'),
+        'Should print banner, got: ' + output.slice(0, 200),
+      );
+    });
+  });
+
+  describe('Server rejects invalid shell and falls back gracefully', () => {
+    let inst;
+    after(() => inst?.shutdown());
+
+    it('should start even when defaultShell is an invalid process name', async () => {
+      // Simulate the npx bug: defaultShell is garbage but shell is a real shell
+      inst = await startServer({
+        defaultShell: 'npm exec termbeam@latest --log-level=debug',
+      });
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: '/api/sessions',
+        method: 'GET',
+      });
+      assert.strictEqual(res.statusCode, 200);
+      const sessions = JSON.parse(res.data);
+      assert.ok(sessions.length >= 1, 'Should have at least one session');
+    });
+
+    it('POST /api/sessions with invalid shell should return 400', async () => {
+      if (!inst) inst = await startServer();
+      const body = JSON.stringify({ name: 'bad', shell: 'npm exec termbeam' });
+      const res = await httpRequest(
+        {
+          hostname: '127.0.0.1',
+          port: inst.port,
+          path: '/api/sessions',
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(body),
+          },
+        },
+        body,
+      );
+      assert.strictEqual(res.statusCode, 400);
+      const data = JSON.parse(res.data);
+      assert.strictEqual(data.error, 'Invalid shell');
     });
   });
 });
