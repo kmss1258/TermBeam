@@ -11,6 +11,7 @@ import {
   useVideoConfig,
 } from "remotion";
 import { loadFont } from "@remotion/google-fonts/Inter";
+import { loadFont as loadMono } from "@remotion/google-fonts/JetBrainsMono";
 import { PhoneMockup } from "./PhoneMockup";
 
 const { fontFamily } = loadFont("normal", {
@@ -18,7 +19,10 @@ const { fontFamily } = loadFont("normal", {
   subsets: ["latin"],
 });
 
-const monoFont = "'CaskaydiaCove Nerd Font Mono', 'CaskaydiaCove NF Mono', monospace";
+const { fontFamily: monoFont } = loadMono("normal", {
+  weights: ["400", "700"],
+  subsets: ["latin"],
+});
 
 const GRADIENT_BG =
   "radial-gradient(ellipse at 50% 45%, #1a1a3e 0%, #0f0c29 50%, #0a0a1a 100%)";
