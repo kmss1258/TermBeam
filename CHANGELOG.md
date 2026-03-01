@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.6] - 2026-03-01
+
+- fix(routes): resolve static file 404 when installed via npx
+
 ## [1.0.5] - 2026-03-01
 
 - fix: use require.resolve to find hoisted node-pty in postinstall
