@@ -14,6 +14,7 @@ termbeam/
 │   ├── routes.js            # Express HTTP routes
 │   ├── websocket.js         # WebSocket connection handling
 │   ├── tunnel.js            # DevTunnel integration
+│   ├── preview.js           # Port preview reverse proxy
 │   ├── shells.js            # Shell detection (cross-platform)
 │   ├── logger.js            # Structured logger with levels
 │   └── version.js           # Smart version detection
@@ -63,6 +64,10 @@ Registers all Express routes: login page (`GET /login`), auth API, session CRUD 
 ### `websocket.js` — WebSocket Handler
 
 Handles real-time communication: validates the Origin header to reject cross-origin connections, WebSocket-level authentication (password or token), session attachment, terminal I/O forwarding, and resize events. When multiple clients are connected to the same session, the PTY is resized to the minimum dimensions across all clients.
+
+### `preview.js` — Port Preview Proxy
+
+Reverse-proxies HTTP requests from `/preview/:port/*` to services running on `127.0.0.1`. Allows previewing web apps started inside a terminal session without exposing additional ports. Handles proxy errors (502) and timeouts (504).
 
 ### `shells.js` — Shell Detection
 

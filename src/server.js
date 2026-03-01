@@ -13,6 +13,7 @@ const { SessionManager } = require('./sessions');
 const { setupRoutes, cleanupUploadedFiles } = require('./routes');
 const { setupWebSocket } = require('./websocket');
 const { startTunnel, cleanupTunnel, findDevtunnel } = require('./tunnel');
+const { createPreviewProxy } = require('./preview');
 
 // --- Helpers ---
 function getLocalIP() {
@@ -43,7 +44,9 @@ function createTermBeamServer(overrides = {}) {
   app.set('trust proxy', 'loopback');
   app.use(express.json());
   app.use(cookieParser());
-  app.use((_req, res, next) => {
+  app.use((req, res, next) => {
+    // Don't apply TermBeam's security headers to proxied preview content
+    if (req.path.startsWith('/preview/')) return next();
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('Referrer-Policy', 'no-referrer');
@@ -59,6 +62,7 @@ function createTermBeamServer(overrides = {}) {
   const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 1 * 1024 * 1024 });
 
   const state = { shareBaseUrl: null };
+  app.use('/preview', auth.middleware, createPreviewProxy());
   setupRoutes(app, { auth, sessions, config, state });
   setupWebSocket(wss, { auth, sessions });
 

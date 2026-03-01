@@ -65,6 +65,7 @@ termbeam --no-password          # disable password protection
 - **QR code on startup** for instant phone connection
 - **Light/dark theme** with persistent preference
 - **Adjustable font size** via status bar controls, saved across sessions
+- **Port preview** — reverse-proxy a single local web server port and preview it in the browser (HTTP only; no WebSocket/HMR; best with server-rendered apps)
 - **Remote access via [DevTunnel](#remote-access)** — ephemeral or persisted public URLs
 
 ## Remote Access

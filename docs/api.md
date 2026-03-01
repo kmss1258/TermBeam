@@ -149,6 +149,30 @@ All fields are optional.
 
 ---
 
+#### `GET /api/sessions/:id/detect-port`
+
+Scan a session's scrollback buffer for the last `localhost` or `127.0.0.1` URL and return the port number.
+
+**Response (200) — port found:**
+
+```json
+{ "detected": true, "port": 3000 }
+```
+
+**Response (200) — no port found:**
+
+```json
+{ "detected": false }
+```
+
+**Response (404):**
+
+```json
+{ "error": "not found" }
+```
+
+---
+
 #### `DELETE /api/sessions/:id`
 
 Kill and remove a session.
@@ -272,6 +296,45 @@ Upload an image file. The request body is the raw image data with the appropriat
 ```
 
 Maximum file size is 10 MB.
+
+---
+
+### Port Preview
+
+#### `GET /preview/:port/*`
+
+Reverse-proxies requests to a service running on `127.0.0.1:<port>`. All HTTP methods are supported. The path after the port is forwarded as-is, along with query strings and request headers.
+
+Requires authentication (cookie or Bearer token).
+
+!!! warning "Single-port proxy"
+The preview proxies **one port at a time** via HTTP only. It does not proxy WebSocket connections, so live-reload and HMR will not work. Each request is forwarded individually — there is no persistent upstream connection.
+
+!!! info "Limitations when accessed through a tunnel" - **Server-rendered apps** (Next.js SSR, Rails, Django) work best — the browser receives complete HTML with no extra fetches. - **Client-side SPAs** may break if they make API calls to a different port or use hardcoded `localhost` URLs. Apps that use a single port with an internal reverse proxy (e.g., nginx proxying `/api` to a backend) work fine. - **Multi-port architectures** (e.g., frontend on port 3000 making API calls to port 4000) won't work unless the app routes all requests through TermBeam's preview proxy (e.g., `/preview/4000/api` instead of `localhost:4000/api`). - The upstream service must be listening on `127.0.0.1` (localhost) on the machine running TermBeam.
+
+**Response:** The upstream response is streamed back with its original status code and headers.
+
+**Response (400):**
+
+```json
+{ "error": "Invalid port: must be an integer between 1 and 65535" }
+```
+
+**Response (502):**
+
+```json
+{ "error": "Bad gateway: <error message>" }
+```
+
+Returned when the upstream service is unreachable or the connection is refused.
+
+**Response (504):**
+
+```json
+{ "error": "Gateway timeout: upstream server did not respond in time" }
+```
+
+Returned when the upstream service does not respond within 10 seconds.
 
 ---
 

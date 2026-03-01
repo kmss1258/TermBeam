@@ -132,6 +132,26 @@ function setupRoutes(app, { auth, sessions, config, state }) {
     res.json({ shells, default: config.defaultShell, cwd: config.cwd });
   });
 
+  app.get('/api/sessions/:id/detect-port', auth.middleware, (req, res) => {
+    const session = sessions.get(req.params.id);
+    if (!session) return res.status(404).json({ error: 'not found' });
+
+    const buf = session.scrollbackBuf || '';
+    const regex = /https?:\/\/(?:localhost|127\.0\.0\.1):(\d+)/g;
+    let lastPort = null;
+    let match;
+    while ((match = regex.exec(buf)) !== null) {
+      const port = parseInt(match[1], 10);
+      if (port >= 1 && port <= 65535) lastPort = port;
+    }
+
+    if (lastPort !== null) {
+      res.json({ detected: true, port: lastPort });
+    } else {
+      res.json({ detected: false });
+    }
+  });
+
   app.delete('/api/sessions/:id', auth.middleware, (req, res) => {
     if (sessions.delete(req.params.id)) {
       res.json({ ok: true });

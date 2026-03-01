@@ -939,7 +939,8 @@
         background: var(--overlay-bg);
         z-index: 200;
         justify-content: center;
-        align-items: center;
+        align-items: flex-start;
+        padding-top: 15vh;
       }
       .modal-overlay.visible {
         display: flex;
@@ -1405,6 +1406,14 @@
           <button class="bar-btn" id="zoom-out" title="Decrease font size">−</button>
           <button class="bar-btn" id="zoom-in" title="Increase font size">+</button>
         </div>
+        <button
+          class="bar-btn"
+          id="preview-btn"
+          title="Preview local port"
+          onclick="openPreviewModal()"
+        >
+          🌐
+        </button>
         <button class="bar-btn" id="share-btn" title="Share link">
           <svg
             width="16"
@@ -1655,6 +1664,61 @@
         <div class="modal-actions">
           <button class="btn-cancel" id="ns-cancel">Cancel</button>
           <button class="btn-create" id="ns-create">Create</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Preview Port Modal -->
+    <div class="modal-overlay" id="preview-modal">
+      <div class="modal">
+        <h2>🌐 Preview Local Port</h2>
+        <p
+          style="
+            color: var(--text-secondary);
+            font-size: 13px;
+            margin: -8px 0 16px;
+            line-height: 1.4;
+          "
+        >
+          Open a local server running on your machine in a new tab — works through the tunnel.
+        </p>
+        <label for="preview-port-input">Port</label>
+        <div style="position: relative">
+          <input
+            type="number"
+            id="preview-port-input"
+            placeholder="e.g. 3000"
+            min="1"
+            max="65535"
+          />
+          <span
+            id="preview-detect-status"
+            style="
+              position: absolute;
+              right: 12px;
+              top: 50%;
+              transform: translateY(-50%);
+              font-size: 12px;
+              color: var(--text-secondary);
+            "
+          ></span>
+        </div>
+        <div
+          id="preview-hint"
+          style="
+            font-size: 12px;
+            color: var(--success);
+            margin-top: 6px;
+            display: none;
+            align-items: center;
+            gap: 4px;
+          "
+        >
+          <span>✓</span> <span id="preview-hint-text"></span>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-cancel" id="preview-cancel">Cancel</button>
+          <button class="btn-create" id="preview-open">Open Preview ↗</button>
         </div>
       </div>
     </div>
@@ -1929,6 +1993,7 @@
         setupImagePaste();
         setupSelectMode();
         setupNewSessionModal();
+        setupPreviewModal();
         loadShellsForModal();
         startPolling();
 
@@ -3355,6 +3420,64 @@
         document.body.appendChild(overlay);
         input.focus();
         input.select();
+      }
+
+      function openPreviewModal() {
+        const modal = document.getElementById('preview-modal');
+        const input = document.getElementById('preview-port-input');
+        const status = document.getElementById('preview-detect-status');
+        const hint = document.getElementById('preview-hint');
+        const hintText = document.getElementById('preview-hint-text');
+        input.value = '';
+        hint.style.display = 'none';
+        status.textContent = '';
+        modal.classList.add('visible');
+        input.focus();
+
+        if (activeId) {
+          status.textContent = 'detecting…';
+          fetch('/api/sessions/' + activeId + '/detect-port')
+            .then((r) => (r.ok ? r.json() : null))
+            .then((data) => {
+              status.textContent = '';
+              if (data && data.detected) {
+                input.value = data.port;
+                input.select();
+                hintText.textContent = 'Detected port ' + data.port + ' from terminal output';
+                hint.style.display = 'flex';
+              }
+            })
+            .catch(() => {
+              status.textContent = '';
+            });
+        }
+      }
+
+      function submitPreview() {
+        const input = document.getElementById('preview-port-input');
+        const port = parseInt(input.value, 10);
+        if (isNaN(port) || port < 1 || port > 65535) {
+          input.style.borderColor = '#f87171';
+          input.focus();
+          setTimeout(() => (input.style.borderColor = ''), 1500);
+          return;
+        }
+        window.open('/preview/' + port + '/', '_blank');
+        document.getElementById('preview-modal').classList.remove('visible');
+      }
+
+      function setupPreviewModal() {
+        document.getElementById('preview-cancel').addEventListener('click', () => {
+          document.getElementById('preview-modal').classList.remove('visible');
+        });
+        document.getElementById('preview-open').addEventListener('click', submitPreview);
+        document.getElementById('preview-port-input').addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') submitPreview();
+        });
+        document.getElementById('preview-modal').addEventListener('click', (e) => {
+          if (e.target.id === 'preview-modal')
+            document.getElementById('preview-modal').classList.remove('visible');
+        });
       }
 
       document.getElementById('share-btn').addEventListener('click', async () => {
