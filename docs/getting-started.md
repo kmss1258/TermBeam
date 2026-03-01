@@ -92,23 +92,23 @@ termbeam
 
 ### Share & Refresh
 
-- Tap the **share button** (↗) to copy the current URL to your clipboard (works over HTTP)
+- Tap the **share button** (↗) to copy a shareable auto-login link to your clipboard; falls back to a manual-copy dialog when clipboard access is unavailable
 - Tap the **refresh button** (↻) to clear the PWA cache and reload
 
 ## Touch Controls
 
 The bottom touch bar provides quick access to:
 
-| Button  | Key                |
-| ------- | ------------------ |
-| ↑ ↓ ← → | Arrow keys         |
-| Tab     | Tab completion     |
-| Enter   | Return             |
-| Esc     | Escape             |
-| ^C      | Ctrl+C (interrupt) |
-| ^D      | Ctrl+D (EOF)       |
-| ^Z      | Ctrl+Z (suspend)   |
-| ^L      | Ctrl+L (clear)     |
-| Copy    | Copy terminal selection to clipboard |
+| Button  | Key                                        |
+| ------- | ------------------------------------------ |
+| ↑ ↓ ← → | Arrow keys                                 |
+| Tab     | Tab completion                             |
+| Enter   | Return                                     |
+| Esc     | Escape                                     |
+| ^C      | Ctrl+C (interrupt)                         |
+| ^D      | Ctrl+D (EOF)                               |
+| ^Z      | Ctrl+Z (suspend)                           |
+| ^L      | Ctrl+L (clear)                             |
+| Copy    | Copy terminal selection to clipboard       |
 | Paste   | Paste from clipboard (with fallback modal) |
-| A+ / A- | Zoom in/out        |
+| A+ / A- | Zoom in/out                                |

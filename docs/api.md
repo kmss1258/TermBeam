@@ -196,7 +196,7 @@ List available shells on the host system.
 
 #### `GET /api/share-token`
 
-Generate a fresh single-use OTT (one-time token) for sharing access. Requires authentication.
+Generate a fresh share token for sharing access. The token is reusable within its 5-minute validity window. Requires authentication.
 
 **Response (200):**
 
@@ -204,7 +204,7 @@ Generate a fresh single-use OTT (one-time token) for sharing access. Requires au
 { "url": "https://your-tunnel-url/?ott=<token>" }
 ````
 
-The returned URL auto-logs in whoever opens it. The token is single-use and expires in 5 minutes.
+The returned URL auto-logs in whoever opens it. The token is reusable and expires after 5 minutes. When accessed through a tunnel, the URL uses the public tunnel address.
 
 **Response (404):**
 

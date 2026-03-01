@@ -25,13 +25,14 @@ TermBeam is designed for **trusted local networks**. It is NOT designed as a pro
 - Cookie uses `sameSite: lax` to prevent CSRF
 - Cookie `secure` flag is off for HTTP compatibility (tunnels use TLS at the proxy layer)
 
-### QR Code Auto-Login (One-Time Tokens)
+### QR Code & Share Auto-Login (Share Tokens)
 
-- On startup, a **one-time token (OTT)** is generated and embedded in the QR code URL as `?ott=<token>`
+- On startup, a **share token** is generated and embedded in the QR code URL as `?ott=<token>`
 - Scanning the QR code sets a full session cookie and redirects to the clean URL — no password typing required
-- OTTs are **single-use**: consumed immediately on first access, regardless of validity
-- OTTs **expire after 5 minutes** even if unused
-- The share button generates a fresh per-share OTT via `GET /api/share-token` (authenticated endpoint)
+- Share tokens are **reusable within their validity window** to handle tunnel proxy retries and link preview services
+- Share tokens **expire after 5 minutes**
+- The share button generates a fresh share token via `GET /api/share-token` (authenticated endpoint)
+- If the user already has a valid session cookie, a repeated `?ott=` request simply redirects without re-validating
 - Raw password is never embedded in any URL
 
 ### Shell Path Validation
