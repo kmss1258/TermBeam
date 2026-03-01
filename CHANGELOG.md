@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.1] - 2026-03-01
+
+- fix: detect npx symlink entry point without .js extension
+
 ## [1.0.0] - 2026-03-01
 
 - fix: prevent spurious 'session not found' warns on session close (#26)
