@@ -1,4 +1,5 @@
 const os = require('os');
+const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const log = require('./logger');
@@ -100,6 +101,47 @@ function getWindowsAncestors(startPid, maxDepth = 4) {
   return names;
 }
 
+/**
+ * Check if a process name is a known Unix shell by comparing against
+ * /etc/shells entries and a hardcoded fallback list.
+ */
+function isKnownShell(name) {
+  if (!name || name.includes(' ')) return false;
+  const basename = path.basename(name);
+  const knownNames = new Set([
+    'sh',
+    'bash',
+    'zsh',
+    'fish',
+    'dash',
+    'ksh',
+    'csh',
+    'tcsh',
+    'ash',
+    'mksh',
+    'elvish',
+    'nu',
+    'pwsh',
+    'xonsh',
+    'ion',
+  ]);
+  if (knownNames.has(basename)) return true;
+
+  // Check against /etc/shells
+  try {
+    const content = fs.readFileSync('/etc/shells', 'utf8');
+    for (const line of content.split('\n')) {
+      const entry = line.trim();
+      if (entry && !entry.startsWith('#')) {
+        if (entry === name || path.basename(entry) === basename) return true;
+      }
+    }
+  } catch {
+    // /etc/shells not available — rely on knownNames
+  }
+  return false;
+}
+
 function getDefaultShell() {
   const { execFileSync } = require('child_process');
   const ppid = process.ppid;
@@ -141,13 +183,13 @@ function getDefaultShell() {
     if (comm) {
       const shell = comm.startsWith('-') ? comm.slice(1) : comm;
       log.debug(`Detected parent process: ${shell}`);
-      // Validate it looks like a real shell (single token, no spaces)
-      // When run via npx, comm can be "npm exec ..." which is not a shell
-      if (!shell.includes(' ') && !shell.startsWith('npm') && !shell.startsWith('node')) {
+      // Validate it's a real shell by checking against /etc/shells and common names.
+      // When run via npx, the parent is "node" or "npm exec ..." — not a shell.
+      if (isKnownShell(shell)) {
         log.debug(`Using detected shell: ${shell}`);
         return shell;
       }
-      log.debug(`Parent process "${shell}" is not a shell, falling back`);
+      log.debug(`Parent process "${shell}" is not a known shell, falling back`);
     }
   } catch (err) {
     log.debug(`Could not detect parent shell: ${err.message}`);
@@ -257,4 +299,4 @@ function parseArgs() {
   };
 }
 
-module.exports = { parseArgs, printHelp };
+module.exports = { parseArgs, printHelp, isKnownShell };

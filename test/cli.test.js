@@ -310,5 +310,27 @@ describe('CLI', () => {
     }
   });
 
-});
+  describe('isKnownShell', () => {
+    it('should recognize common shells', () => {
+      const { isKnownShell } = require('../src/cli');
+      assert.ok(isKnownShell('bash'), 'bash should be a known shell');
+      assert.ok(isKnownShell('zsh'), 'zsh should be a known shell');
+      assert.ok(isKnownShell('sh'), 'sh should be a known shell');
+      assert.ok(isKnownShell('fish'), 'fish should be a known shell');
+      assert.ok(isKnownShell('dash'), 'dash should be a known shell');
+      assert.ok(isKnownShell('/bin/bash'), '/bin/bash should be a known shell');
+      assert.ok(isKnownShell('/bin/zsh'), '/bin/zsh should be a known shell');
+    });
 
+    it('should reject non-shell process names', () => {
+      const { isKnownShell } = require('../src/cli');
+      assert.ok(!isKnownShell('node'), 'node is not a shell');
+      assert.ok(!isKnownShell('npm'), 'npm is not a shell');
+      assert.ok(!isKnownShell('npm exec termbeam@latest'), 'npm command is not a shell');
+      assert.ok(!isKnownShell('python3'), 'python3 is not a shell');
+      assert.ok(!isKnownShell('code'), 'code is not a shell');
+      assert.ok(!isKnownShell(''), 'empty string is not a shell');
+      assert.ok(!isKnownShell(null), 'null is not a shell');
+    });
+  });
+});

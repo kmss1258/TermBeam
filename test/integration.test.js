@@ -383,15 +383,22 @@ describe('Integration', () => {
     });
   });
 
-  describe('CLI entry point produces output (npx simulation)', () => {
-    it('should print the banner when invoked via a wrapper script', async () => {
+  describe('npx simulation: parent process is node, not a shell', () => {
+    it('should start and print the banner when spawned by a node process (like npx)', async () => {
+      // This exactly reproduces the npx scenario: node (npx) → node (termbeam)
+      // The parent process is "node", which is NOT a shell, so shell detection
+      // must fall back to $SHELL or /bin/sh instead of trying to spawn "node" as a shell.
       const entryPoint = path.resolve(__dirname, '..', 'bin', 'termbeam.js');
       const output = await new Promise((resolve, reject) => {
         let buf = '';
-        const child = spawn(process.execPath, [entryPoint, '--no-tunnel', '--no-password'], {
-          env: { ...process.env, TERMBEAM_LOG_LEVEL: 'error', PORT: '0' },
-          stdio: ['ignore', 'pipe', 'pipe'],
-        });
+        const child = spawn(
+          process.execPath,
+          [entryPoint, '--no-tunnel', '--no-password', '--log-level', 'debug'],
+          {
+            env: { ...process.env, PORT: '0' },
+            stdio: ['ignore', 'pipe', 'pipe'],
+          },
+        );
         child.stdout.on('data', (d) => {
           buf += d;
         });
@@ -406,14 +413,31 @@ describe('Integration', () => {
           clearTimeout(timer);
           reject(err);
         });
-        child.on('exit', () => {
+        child.on('exit', (code) => {
           clearTimeout(timer);
+          // If the process crashed (non-signal exit), the test should fail
+          // with the captured output for easier debugging
           resolve(buf);
         });
       });
+
+      // Must NOT contain "posix_spawnp failed" — that means we tried to spawn
+      // a non-shell process (the original bug)
+      assert.ok(
+        !output.includes('posix_spawnp failed'),
+        'Should not crash with posix_spawnp failed, got: ' + output.slice(0, 300),
+      );
+
+      // Must contain the banner — proves the server actually started
       assert.ok(
         output.includes('Beam your terminal') || output.includes('TERMBEAM'),
-        'Should print banner, got: ' + output.slice(0, 200),
+        'Should print banner, got: ' + output.slice(0, 300),
+      );
+
+      // Debug output should show it detected "node" and fell back
+      assert.ok(
+        output.includes('not a known shell') || output.includes('Falling back'),
+        'Should log shell detection fallback, got: ' + output.slice(0, 500),
       );
     });
   });
