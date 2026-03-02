@@ -1,6 +1,7 @@
 const { describe, it, after } = require('node:test');
 const assert = require('node:assert');
 const http = require('http');
+const fs = require('fs');
 const path = require('path');
 const { createTermBeamServer } = require('../src/server');
 
@@ -298,6 +299,81 @@ describe('Routes', () => {
       assert.strictEqual(res.statusCode, 400);
       const body = JSON.parse(res.data);
       assert.strictEqual(body.error, 'File content does not match declared image type');
+    });
+
+    it('should reject upload larger than 10MB with 413', async () => {
+      if (!inst) inst = await startServer();
+      const totalSize = 10 * 1024 * 1024 + 1;
+      const res = await new Promise((resolve, reject) => {
+        const req = http.request(
+          {
+            hostname: '127.0.0.1',
+            port: inst.port,
+            path: '/api/upload',
+            method: 'POST',
+            headers: { 'Content-Type': 'image/png', 'Content-Length': totalSize },
+          },
+          (r) => {
+            const chunks = [];
+            r.on('data', (chunk) => chunks.push(chunk));
+            r.on('end', () =>
+              resolve({
+                statusCode: r.statusCode,
+                headers: r.headers,
+                data: Buffer.concat(chunks).toString(),
+              }),
+            );
+          },
+        );
+        req.on('error', reject);
+        // Write in 1MB chunks to avoid allocating a single huge buffer
+        const chunkSize = 1024 * 1024;
+        let written = 0;
+        function writeChunk() {
+          while (written < totalSize) {
+            const toWrite = Math.min(chunkSize, totalSize - written);
+            const ok = req.write(Buffer.alloc(toWrite));
+            written += toWrite;
+            if (!ok) {
+              req.once('drain', writeChunk);
+              return;
+            }
+          }
+          req.end();
+        }
+        writeChunk();
+      });
+      assert.strictEqual(res.statusCode, 413);
+      const body = JSON.parse(res.data);
+      assert.strictEqual(body.error, 'File too large');
+    });
+
+    it('GET /uploads/:id should return 404 when file is deleted from disk', async () => {
+      if (!inst) inst = await startServer();
+      const imageData = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00]);
+      const uploadRes = await httpRequest(
+        {
+          hostname: '127.0.0.1',
+          port: inst.port,
+          path: '/api/upload',
+          method: 'POST',
+          headers: { 'Content-Type': 'image/png', 'Content-Length': imageData.length },
+        },
+        imageData,
+      );
+      const uploadBody = JSON.parse(uploadRes.data);
+      assert.strictEqual(uploadRes.statusCode, 200);
+      // Delete the file from disk
+      fs.unlinkSync(uploadBody.path);
+      const getRes = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: uploadBody.url,
+        method: 'GET',
+      });
+      assert.strictEqual(getRes.statusCode, 404);
+      const body = JSON.parse(getRes.data);
+      assert.strictEqual(body.error, 'not found');
     });
   });
 

@@ -34,6 +34,25 @@ describe('Auth', () => {
       assert.strictEqual(auth.validateToken(''), false);
       assert.strictEqual(auth.validateToken(undefined), false);
     });
+
+    it('should reject an expired token and remove it', () => {
+      const auth = createAuth('pw');
+      const token = auth.generateToken();
+      assert.ok(auth.validateToken(token), 'token should be valid before expiry');
+      const realNow = Date.now;
+      Date.now = () => realNow() + 25 * 60 * 60 * 1000; // advance 25 hours past 24-hour expiry
+      try {
+        assert.strictEqual(
+          auth.validateToken(token),
+          false,
+          'token should be rejected after expiry',
+        );
+        // Token should have been deleted, so a second call also returns false
+        assert.strictEqual(auth.validateToken(token), false, 'deleted token should stay invalid');
+      } finally {
+        Date.now = realNow;
+      }
+    });
   });
 
   describe('parseCookies', () => {
@@ -402,7 +421,11 @@ describe('Auth', () => {
         const fakeToken = 'abcdef1234567890abcdef1234567890';
         auth.validateShareToken(fakeToken);
         for (const msg of messages) {
-          assert.strictEqual(msg.includes(fakeToken), false, `Log should not contain token: ${msg}`);
+          assert.strictEqual(
+            msg.includes(fakeToken),
+            false,
+            `Log should not contain token: ${msg}`,
+          );
         }
       } finally {
         log.warn = origWarn;

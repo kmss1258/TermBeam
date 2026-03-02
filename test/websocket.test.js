@@ -485,4 +485,17 @@ describe('WebSocket', () => {
       assert.deepStrictEqual(session._resizes[0], { cols: 120, rows: 40 });
     });
   });
+
+  describe('unparseable messages', () => {
+    it('should drop unparseable messages without closing', () => {
+      const ws = createMockWs();
+      wss._simulateConnection(ws);
+
+      // Send raw invalid JSON directly to the message handler
+      ws._onMessage(Buffer.from('not-json{{{'));
+
+      assert.ok(!ws._closed, 'connection should remain open');
+      assert.strictEqual(ws._sent.length, 0, 'no messages should be sent');
+    });
+  });
 });
