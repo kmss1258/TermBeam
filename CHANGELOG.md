@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.2.7] - 2026-03-02
+
+- docs: note --public requires password in README and docs
+- feat(auth): block --public --no-password unsafe configuration (#45)
+
 ## [1.2.6] - 2026-03-02
 
 - feat(tunnel): add smoke test workflow and auto-install devtunnel (#33)
