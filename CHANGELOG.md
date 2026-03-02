@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.2.6] - 2026-03-02
+
+- feat(tunnel): add smoke test workflow and auto-install devtunnel (#33)
+
 ## [1.2.5] - 2026-03-02
 
 - feat(tunnel): make tunnel access private by default with --public opt-in
