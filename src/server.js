@@ -231,7 +231,7 @@ function createTermBeamServer(overrides = {}) {
   return { app, server, wss, sessions, config, auth, start, shutdown };
 }
 
-module.exports = { createTermBeamServer };
+module.exports = { createTermBeamServer, getLocalIP };
 
 // Auto-start when run directly (CLI entry point)
 const _entryBase = path.basename(process.argv[1] || '');

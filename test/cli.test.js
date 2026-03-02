@@ -403,5 +403,367 @@ describe('CLI', () => {
       assert.ok(!isKnownShell(''), 'empty string is not a shell');
       assert.ok(!isKnownShell(null), 'null is not a shell');
     });
+
+    it('should recognize known shells even when /etc/shells is unreadable', () => {
+      const fs = require('fs');
+      const origReadFileSync = fs.readFileSync;
+      fs.readFileSync = (p, ...args) => {
+        if (p === '/etc/shells') throw new Error('ENOENT');
+        return origReadFileSync(p, ...args);
+      };
+      try {
+        delete require.cache[require.resolve('../src/cli')];
+        const { isKnownShell } = require('../src/cli');
+        assert.ok(isKnownShell('bash'), 'bash via knownNames fallback');
+        assert.ok(isKnownShell('zsh'), 'zsh via knownNames fallback');
+        assert.ok(!isKnownShell('node'), 'node still rejected');
+      } finally {
+        fs.readFileSync = origReadFileSync;
+      }
+    });
+  });
+
+  describe('getDefaultShell edge cases', () => {
+    it('should fall back when ps command fails', () => {
+      const child_process = require('child_process');
+      const origExecFileSync = child_process.execFileSync;
+      child_process.execFileSync = (cmd, ...args) => {
+        if (cmd === 'ps') throw new Error('ps not available');
+        return origExecFileSync(cmd, ...args);
+      };
+      try {
+        process.argv = ['node', 'termbeam'];
+        delete require.cache[require.resolve('../src/cli')];
+        const { parseArgs } = require('../src/cli');
+        const config = parseArgs();
+        assert.ok(config.defaultShell, 'Should have a fallback shell');
+      } finally {
+        child_process.execFileSync = origExecFileSync;
+      }
+    });
+
+    it('should use detected shell when ps returns a known shell', () => {
+      const child_process = require('child_process');
+      const origExecFileSync = child_process.execFileSync;
+      child_process.execFileSync = (cmd, args, opts) => {
+        if (cmd === 'ps') return 'bash\n';
+        return origExecFileSync(cmd, args, opts);
+      };
+      try {
+        process.argv = ['node', 'termbeam'];
+        delete require.cache[require.resolve('../src/cli')];
+        const { parseArgs } = require('../src/cli');
+        const config = parseArgs();
+        assert.strictEqual(config.defaultShell, 'bash');
+      } finally {
+        child_process.execFileSync = origExecFileSync;
+      }
+    });
+
+    it('should detect shell on win32 using process tree', () => {
+      const os = require('os');
+      const child_process = require('child_process');
+      const origPlatform = os.platform;
+      const origExecFileSync = child_process.execFileSync;
+      os.platform = () => 'win32';
+      child_process.execFileSync = (cmd) => {
+        if (cmd === 'wmic') {
+          return [
+            'Node,Name,ParentProcessId,ProcessId',
+            `PC,powershell.exe,9999,${process.ppid}`,
+            'PC,explorer.exe,0,9999',
+          ].join('\r\n');
+        }
+        throw new Error('not found');
+      };
+      try {
+        process.argv = ['node', 'termbeam'];
+        delete require.cache[require.resolve('../src/cli')];
+        const { parseArgs } = require('../src/cli');
+        const config = parseArgs();
+        assert.strictEqual(config.defaultShell, 'powershell.exe');
+      } finally {
+        os.platform = origPlatform;
+        child_process.execFileSync = origExecFileSync;
+      }
+    });
+
+    it('should fall back to cmd.exe on win32 when found in tree', () => {
+      const os = require('os');
+      const child_process = require('child_process');
+      const origPlatform = os.platform;
+      const origExecFileSync = child_process.execFileSync;
+      os.platform = () => 'win32';
+      child_process.execFileSync = (cmd) => {
+        if (cmd === 'wmic') {
+          return [
+            'Node,Name,ParentProcessId,ProcessId',
+            `PC,cmd.exe,9999,${process.ppid}`,
+            'PC,explorer.exe,0,9999',
+          ].join('\r\n');
+        }
+        throw new Error('not found');
+      };
+      try {
+        process.argv = ['node', 'termbeam'];
+        delete require.cache[require.resolve('../src/cli')];
+        const { parseArgs } = require('../src/cli');
+        const config = parseArgs();
+        assert.strictEqual(config.defaultShell, 'cmd.exe');
+      } finally {
+        os.platform = origPlatform;
+        child_process.execFileSync = origExecFileSync;
+      }
+    });
+
+    it('should fall back to COMSPEC on win32 when no shell in tree', () => {
+      const os = require('os');
+      const child_process = require('child_process');
+      const origPlatform = os.platform;
+      const origExecFileSync = child_process.execFileSync;
+      const origComspec = process.env.COMSPEC;
+      os.platform = () => 'win32';
+      process.env.COMSPEC = 'C:\\Windows\\System32\\cmd.exe';
+      child_process.execFileSync = (cmd) => {
+        if (cmd === 'wmic') {
+          return ['Node,Name,ParentProcessId,ProcessId', `PC,explorer.exe,0,${process.ppid}`].join(
+            '\r\n',
+          );
+        }
+        throw new Error('not found');
+      };
+      try {
+        process.argv = ['node', 'termbeam'];
+        delete require.cache[require.resolve('../src/cli')];
+        const { parseArgs } = require('../src/cli');
+        const config = parseArgs();
+        assert.strictEqual(config.defaultShell, 'C:\\Windows\\System32\\cmd.exe');
+      } finally {
+        os.platform = origPlatform;
+        child_process.execFileSync = origExecFileSync;
+        if (origComspec !== undefined) process.env.COMSPEC = origComspec;
+        else delete process.env.COMSPEC;
+      }
+    });
+  });
+
+  it('should parse --log-level=value syntax', () => {
+    process.argv = ['node', 'termbeam', '--log-level=debug'];
+    const { parseArgs } = require('../src/cli');
+    const config = parseArgs();
+    assert.strictEqual(config.logLevel, 'debug');
+  });
+
+  it('--help should call printHelp and process.exit(0)', () => {
+    process.argv = ['node', 'termbeam', '--help'];
+    const exitCalls = [];
+    const origExit = process.exit;
+    const origLog = console.log;
+    const logs = [];
+    process.exit = (code) => exitCalls.push(code);
+    console.log = (msg) => logs.push(msg);
+    try {
+      const { parseArgs } = require('../src/cli');
+      parseArgs();
+      assert.ok(exitCalls.includes(0), 'Should call process.exit(0)');
+      assert.ok(
+        logs.some((m) => m && m.includes('--password')),
+        'Should print help text',
+      );
+    } finally {
+      process.exit = origExit;
+      console.log = origLog;
+    }
+  });
+
+  it('-h should behave like --help', () => {
+    process.argv = ['node', 'termbeam', '-h'];
+    const exitCalls = [];
+    const origExit = process.exit;
+    const origLog = console.log;
+    process.exit = (code) => exitCalls.push(code);
+    console.log = () => {};
+    try {
+      const { parseArgs } = require('../src/cli');
+      parseArgs();
+      assert.ok(exitCalls.includes(0), 'Should call process.exit(0)');
+    } finally {
+      process.exit = origExit;
+      console.log = origLog;
+    }
+  });
+
+  it('--version should print version and exit(0)', () => {
+    process.argv = ['node', 'termbeam', '--version'];
+    const exitCalls = [];
+    const logs = [];
+    const origExit = process.exit;
+    const origLog = console.log;
+    process.exit = (code) => exitCalls.push(code);
+    console.log = (msg) => logs.push(msg);
+    try {
+      const { parseArgs } = require('../src/cli');
+      parseArgs();
+      assert.ok(exitCalls.includes(0), 'Should call process.exit(0)');
+      assert.ok(
+        logs.some((m) => m && m.includes('termbeam v')),
+        'Should print version',
+      );
+    } finally {
+      process.exit = origExit;
+      console.log = origLog;
+    }
+  });
+
+  it('-v should behave like --version', () => {
+    process.argv = ['node', 'termbeam', '-v'];
+    const exitCalls = [];
+    const origExit = process.exit;
+    const origLog = console.log;
+    process.exit = (code) => exitCalls.push(code);
+    console.log = () => {};
+    try {
+      const { parseArgs } = require('../src/cli');
+      parseArgs();
+      assert.ok(exitCalls.includes(0), 'Should call process.exit(0)');
+    } finally {
+      process.exit = origExit;
+      console.log = origLog;
+    }
+  });
+
+  it('--public --no-tunnel should exit with error', () => {
+    process.argv = ['node', 'termbeam', '--public', '--no-tunnel'];
+    const exitCalls = [];
+    const errorMessages = [];
+    const origExit = process.exit;
+    const origError = console.error;
+    process.exit = (code) => exitCalls.push(code);
+    console.error = (msg) => errorMessages.push(msg);
+    try {
+      const { parseArgs } = require('../src/cli');
+      parseArgs();
+      assert.ok(exitCalls.includes(1), 'Should call process.exit(1)');
+      assert.ok(
+        errorMessages.some((m) => m.includes('--public requires a tunnel')),
+        'Should mention --public requires a tunnel',
+      );
+    } finally {
+      process.exit = origExit;
+      console.error = origError;
+    }
+  });
+
+  describe('getWindowsAncestors', () => {
+    it('should parse wmic CSV output and walk process tree', () => {
+      const child_process = require('child_process');
+      const origExecFileSync = child_process.execFileSync;
+      // Mock wmic output: CSV format with header line
+      child_process.execFileSync = (cmd) => {
+        if (cmd === 'wmic') {
+          return [
+            'Node,Name,ParentProcessId,ProcessId',
+            'PC,node.exe,5678,1234',
+            'PC,cmd.exe,9999,5678',
+            'PC,explorer.exe,0,9999',
+          ].join('\r\n');
+        }
+        throw new Error('not found');
+      };
+      try {
+        delete require.cache[require.resolve('../src/cli')];
+        const { getWindowsAncestors } = require('../src/cli');
+        const names = getWindowsAncestors(1234);
+        assert.ok(Array.isArray(names));
+        assert.ok(names.includes('node.exe'), 'Should include node.exe');
+        assert.ok(names.includes('cmd.exe'), 'Should include cmd.exe');
+        assert.ok(names.includes('explorer.exe'), 'Should include explorer.exe');
+      } finally {
+        child_process.execFileSync = origExecFileSync;
+      }
+    });
+
+    it('should return empty array for invalid PID', () => {
+      delete require.cache[require.resolve('../src/cli')];
+      const { getWindowsAncestors } = require('../src/cli');
+      assert.deepStrictEqual(getWindowsAncestors(-1), []);
+      assert.deepStrictEqual(getWindowsAncestors(NaN), []);
+      assert.deepStrictEqual(getWindowsAncestors(0), []);
+    });
+
+    it('should handle wmic failure gracefully', () => {
+      const child_process = require('child_process');
+      const origExecFileSync = child_process.execFileSync;
+      child_process.execFileSync = () => {
+        throw new Error('wmic not found');
+      };
+      try {
+        delete require.cache[require.resolve('../src/cli')];
+        const { getWindowsAncestors } = require('../src/cli');
+        const names = getWindowsAncestors(1234);
+        assert.deepStrictEqual(names, []);
+      } finally {
+        child_process.execFileSync = origExecFileSync;
+      }
+    });
+
+    it('should handle empty wmic output', () => {
+      const child_process = require('child_process');
+      const origExecFileSync = child_process.execFileSync;
+      child_process.execFileSync = (cmd) => {
+        if (cmd === 'wmic') return '';
+        throw new Error('not found');
+      };
+      try {
+        delete require.cache[require.resolve('../src/cli')];
+        const { getWindowsAncestors } = require('../src/cli');
+        const names = getWindowsAncestors(1234);
+        assert.deepStrictEqual(names, []);
+      } finally {
+        child_process.execFileSync = origExecFileSync;
+      }
+    });
+
+    it('should handle malformed wmic CSV (missing columns)', () => {
+      const child_process = require('child_process');
+      const origExecFileSync = child_process.execFileSync;
+      child_process.execFileSync = (cmd) => {
+        if (cmd === 'wmic') return 'Node,WrongHeader\nPC,foo';
+        throw new Error('not found');
+      };
+      try {
+        delete require.cache[require.resolve('../src/cli')];
+        const { getWindowsAncestors } = require('../src/cli');
+        const names = getWindowsAncestors(1234);
+        assert.deepStrictEqual(names, []);
+      } finally {
+        child_process.execFileSync = origExecFileSync;
+      }
+    });
+
+    it('should respect maxDepth parameter', () => {
+      const child_process = require('child_process');
+      const origExecFileSync = child_process.execFileSync;
+      child_process.execFileSync = (cmd) => {
+        if (cmd === 'wmic') {
+          return [
+            'Node,Name,ParentProcessId,ProcessId',
+            'PC,a.exe,2,1',
+            'PC,b.exe,3,2',
+            'PC,c.exe,4,3',
+            'PC,d.exe,0,4',
+          ].join('\r\n');
+        }
+        throw new Error('not found');
+      };
+      try {
+        delete require.cache[require.resolve('../src/cli')];
+        const { getWindowsAncestors } = require('../src/cli');
+        const names = getWindowsAncestors(1, 2);
+        assert.strictEqual(names.length, 2, 'Should stop at maxDepth=2');
+      } finally {
+        child_process.execFileSync = origExecFileSync;
+      }
+    });
   });
 });

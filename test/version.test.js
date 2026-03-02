@@ -64,4 +64,24 @@ describe('Version', () => {
     // Should take the git describe path, not the global install path
     assert.ok(typeof version === 'string');
   });
+
+  it('should return base-dev when git describe fails', () => {
+    delete process.env.npm_package_version;
+    const child_process = require('child_process');
+    const origExecSync = child_process.execSync;
+    child_process.execSync = (cmd) => {
+      if (cmd.includes('git describe')) throw new Error('not a git repo');
+      return origExecSync(cmd);
+    };
+    try {
+      delete require.cache[require.resolve('../src/version')];
+      const { getVersion } = require('../src/version');
+      const version = getVersion();
+      const pkg = require('../package.json');
+      assert.equal(version, `${pkg.version}-dev`);
+    } finally {
+      child_process.execSync = origExecSync;
+      delete require.cache[require.resolve('../src/version')];
+    }
+  });
 });

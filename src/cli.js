@@ -329,4 +329,4 @@ function parseArgs() {
   };
 }
 
-module.exports = { parseArgs, printHelp, isKnownShell };
+module.exports = { parseArgs, printHelp, isKnownShell, getWindowsAncestors };

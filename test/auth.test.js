@@ -474,4 +474,131 @@ describe('Auth', () => {
       }
     });
   });
+
+  describe('periodic cleanup', () => {
+    it('should clean up expired tokens and stale rate-limit entries', () => {
+      const realSetInterval = global.setInterval;
+      let cleanupFn = null;
+      global.setInterval = (fn, delay) => {
+        cleanupFn = fn;
+        return { unref: () => {} };
+      };
+      try {
+        // Re-require auth to capture the setInterval callback
+        delete require.cache[require.resolve('../src/auth')];
+        const { createAuth } = require('../src/auth');
+        const auth = createAuth('testpw');
+        assert.ok(cleanupFn, 'Should have captured the cleanup function');
+
+        // Generate some tokens and share tokens
+        const validToken = auth.generateToken();
+        const shareToken = auth.generateShareToken();
+
+        // Create some rate-limit entries via middleware
+        const req = {
+          cookies: {},
+          headers: { authorization: 'Bearer wrong' },
+          ip: '192.168.1.100',
+          socket: { remoteAddress: '192.168.1.100' },
+          path: '/api/test',
+        };
+        const res = {
+          status() {
+            return this;
+          },
+          json() {},
+        };
+        auth.middleware(req, res, () => {});
+
+        // Run the cleanup with current time — nothing should be cleaned
+        cleanupFn();
+        assert.ok(auth.validateToken(validToken), 'Valid token should survive cleanup');
+
+        // Advance time to expire everything
+        const realNow = Date.now;
+        Date.now = () => realNow() + 25 * 60 * 60 * 1000; // 25 hours
+        try {
+          cleanupFn();
+          // Token should now be expired and cleaned up
+          assert.strictEqual(
+            auth.validateToken(validToken),
+            false,
+            'Expired token should be removed',
+          );
+          // Share token should also be cleaned up (5 min expiry)
+          assert.strictEqual(
+            auth.validateShareToken(shareToken),
+            false,
+            'Expired share token should be removed',
+          );
+        } finally {
+          Date.now = realNow;
+        }
+      } finally {
+        global.setInterval = realSetInterval;
+        delete require.cache[require.resolve('../src/auth')];
+      }
+    });
+
+    it('should clean up stale rate-limit entries but keep recent ones', () => {
+      const realSetInterval = global.setInterval;
+      let cleanupFn = null;
+      global.setInterval = (fn) => {
+        cleanupFn = fn;
+        return { unref: () => {} };
+      };
+      try {
+        delete require.cache[require.resolve('../src/auth')];
+        const { createAuth } = require('../src/auth');
+        const auth = createAuth('testpw');
+        assert.ok(cleanupFn);
+
+        // Create rate-limit entries via middleware
+        const req1 = {
+          cookies: {},
+          headers: { authorization: 'Bearer wrong' },
+          ip: '10.0.0.1',
+          socket: { remoteAddress: '10.0.0.1' },
+          path: '/api/test',
+        };
+        const req2 = {
+          cookies: {},
+          headers: { authorization: 'Bearer wrong' },
+          ip: '10.0.0.2',
+          socket: { remoteAddress: '10.0.0.2' },
+          path: '/api/test',
+        };
+        const res = {
+          status() {
+            return this;
+          },
+          json() {},
+        };
+        auth.middleware(req1, res, () => {});
+        auth.middleware(req2, res, () => {});
+
+        // Advance time by 2 minutes (beyond 60s rate-limit window)
+        const realNow = Date.now;
+        Date.now = () => realNow() + 2 * 60 * 1000;
+        try {
+          cleanupFn();
+          // After cleanup, rate limit entries for both IPs should be removed
+          // Verify by making 5 attempts — should all succeed (no rate limit)
+          let count = 0;
+          Date.now = realNow; // restore time for new attempts
+          for (let i = 0; i < 5; i++) {
+            auth.rateLimit({ ip: '10.0.0.1', socket: { remoteAddress: '10.0.0.1' } }, res, () => {
+              count++;
+            });
+          }
+          assert.strictEqual(count, 5, 'All 5 attempts should succeed after cleanup');
+        } finally {
+          Date.now = realNow;
+        }
+      } finally {
+        global.setInterval = realSetInterval;
+        delete require.cache[require.resolve('../src/auth')];
+      }
+    });
+  });
 });

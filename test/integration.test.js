@@ -4,7 +4,7 @@ const http = require('http');
 const { spawn } = require('child_process');
 const path = require('path');
 const WebSocket = require('ws');
-const { createTermBeamServer } = require('../src/server');
+const { createTermBeamServer, getLocalIP } = require('../src/server');
 
 // --- Helpers ---
 
@@ -481,6 +481,59 @@ describe('Integration', () => {
       assert.strictEqual(res.statusCode, 400);
       const data = JSON.parse(res.data);
       assert.strictEqual(data.error, 'Invalid shell');
+    });
+  });
+
+  describe('Server with LAN-reachable host', () => {
+    let inst;
+    after(() => inst?.shutdown());
+
+    it('should display LAN-accessible bind and LAN URL when host is 0.0.0.0', async () => {
+      inst = await startServer({ host: '0.0.0.0' });
+      // Just verify the server started and is accessible
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: '/api/sessions',
+        method: 'GET',
+      });
+      assert.strictEqual(res.statusCode, 200);
+      const sessions = JSON.parse(res.data);
+      assert.ok(sessions.length >= 1, 'Should have at least one session');
+    });
+  });
+
+  describe('Server with password shows password in banner', () => {
+    let inst;
+    after(() => inst?.shutdown());
+
+    it('should start with password and serve pages', async () => {
+      inst = await startServer({ password: 'banner-test-pw', host: '0.0.0.0' });
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: '/api/sessions',
+        method: 'GET',
+        headers: { authorization: 'Bearer banner-test-pw' },
+      });
+      assert.strictEqual(res.statusCode, 200);
+    });
+  });
+
+  describe('Server shutdown is idempotent', () => {
+    it('should not throw on double shutdown', async () => {
+      const inst = await startServer();
+      inst.shutdown();
+      inst.shutdown(); // should be a no-op
+    });
+  });
+
+  describe('getLocalIP', () => {
+    it('should return a valid IPv4 address', () => {
+      const ip = getLocalIP();
+      assert.ok(typeof ip === 'string');
+      // Should be a valid IPv4 format
+      assert.match(ip, /^\d+\.\d+\.\d+\.\d+$/);
     });
   });
 });

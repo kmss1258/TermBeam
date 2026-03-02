@@ -160,3 +160,89 @@ describe('detectUnixShells (mocked)', () => {
     assert.strictEqual(shells.length, 0);
   });
 });
+
+describe('detectWindowsShells (mocked)', () => {
+  let detectWindowsShells;
+
+  beforeEach(() => {
+    delete require.cache[require.resolve('../src/shells')];
+    ({ detectWindowsShells } = require('../src/shells'));
+  });
+
+  afterEach(() => {
+    delete require.cache[require.resolve('../src/shells')];
+    mock.restoreAll();
+  });
+
+  it('should detect shells found by where command', () => {
+    mock.method(child_process, 'execFileSync', (cmd, args) => {
+      if (cmd === 'where') {
+        if (args[0] === 'cmd.exe') return 'C:\\Windows\\System32\\cmd.exe\n';
+        if (args[0] === 'pwsh.exe') return 'C:\\Program Files\\PowerShell\\7\\pwsh.exe\n';
+      }
+      throw new Error('not found');
+    });
+    const shells = detectWindowsShells();
+    assert.ok(shells.length >= 2, 'Should detect at least 2 shells');
+    const cmd = shells.find((s) => s.cmd === 'cmd.exe');
+    assert.ok(cmd, 'Should find cmd.exe');
+    assert.strictEqual(cmd.name, 'Command Prompt');
+    assert.strictEqual(cmd.path, 'C:\\Windows\\System32\\cmd.exe');
+    const pwsh = shells.find((s) => s.cmd === 'pwsh.exe');
+    assert.ok(pwsh, 'Should find pwsh.exe');
+    assert.strictEqual(pwsh.name, 'PowerShell (Core)');
+  });
+
+  it('should return empty array when no shells are found', () => {
+    mock.method(child_process, 'execFileSync', () => {
+      throw new Error('not found');
+    });
+    const shells = detectWindowsShells();
+    assert.strictEqual(shells.length, 0);
+  });
+
+  it('should skip shells with empty where output', () => {
+    mock.method(child_process, 'execFileSync', (cmd, args) => {
+      if (cmd === 'where' && args[0] === 'cmd.exe') return '  \n';
+      throw new Error('not found');
+    });
+    const shells = detectWindowsShells();
+    // 'cmd.exe' with whitespace-only path should NOT be included since '  '.trim() is empty
+    // Actually, '  \n'.trim().split('\n')[0].trim() is '' which is falsy, so it should be skipped
+    assert.strictEqual(shells.length, 0, 'Should skip shells with empty paths');
+  });
+
+  it('should take first path when where returns multiple paths', () => {
+    mock.method(child_process, 'execFileSync', (cmd, args) => {
+      if (cmd === 'where' && args[0] === 'cmd.exe') {
+        return 'C:\\Windows\\System32\\cmd.exe\nC:\\Other\\cmd.exe\n';
+      }
+      throw new Error('not found');
+    });
+    const shells = detectWindowsShells();
+    assert.strictEqual(shells.length, 1);
+    assert.strictEqual(shells[0].path, 'C:\\Windows\\System32\\cmd.exe');
+  });
+});
+
+describe('detectShells with mocked platform', () => {
+  afterEach(() => {
+    delete require.cache[require.resolve('../src/shells')];
+    mock.restoreAll();
+  });
+
+  it('should call detectWindowsShells on win32 platform', () => {
+    mock.method(os, 'platform', () => 'win32');
+    mock.method(child_process, 'execFileSync', (cmd, args) => {
+      if (cmd === 'where' && args[0] === 'cmd.exe') return 'C:\\Windows\\System32\\cmd.exe\n';
+      throw new Error('not found');
+    });
+    delete require.cache[require.resolve('../src/shells')];
+    const { detectShells } = require('../src/shells');
+    const shells = detectShells();
+    assert.ok(Array.isArray(shells));
+    // On mocked win32, it should use detectWindowsShells
+    const cmd = shells.find((s) => s.cmd === 'cmd.exe');
+    assert.ok(cmd, 'Should detect cmd.exe on mocked Windows');
+  });
+});
