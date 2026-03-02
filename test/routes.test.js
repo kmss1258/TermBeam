@@ -82,7 +82,7 @@ describe('Routes', () => {
 
     it('GET /uploads/:id should serve uploaded file', async () => {
       if (!inst) inst = await startServer();
-      const imageData = Buffer.from('fakepngdata');
+      const imageData = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00]);
       const uploadRes = await httpRequest(
         {
           hostname: '127.0.0.1',
@@ -187,10 +187,22 @@ describe('Routes', () => {
       if (!inst) inst = await startServer();
       // RIFF....WEBP header
       const imageData = Buffer.from([
-        0x52, 0x49, 0x46, 0x46, // RIFF
-        0x24, 0x00, 0x00, 0x00, // file size
-        0x57, 0x45, 0x42, 0x50, // WEBP
-        0x00, 0x00, 0x00, 0x00,
+        0x52,
+        0x49,
+        0x46,
+        0x46, // RIFF
+        0x24,
+        0x00,
+        0x00,
+        0x00, // file size
+        0x57,
+        0x45,
+        0x42,
+        0x50, // WEBP
+        0x00,
+        0x00,
+        0x00,
+        0x00,
       ]);
       const res = await httpRequest(
         {
@@ -226,9 +238,18 @@ describe('Routes', () => {
       if (!inst) inst = await startServer();
       // Has WEBP at offset 8 but no RIFF at offset 0
       const imageData = Buffer.from([
-        0x00, 0x00, 0x00, 0x00, // NOT RIFF
-        0x24, 0x00, 0x00, 0x00,
-        0x57, 0x45, 0x42, 0x50, // WEBP
+        0x00,
+        0x00,
+        0x00,
+        0x00, // NOT RIFF
+        0x24,
+        0x00,
+        0x00,
+        0x00,
+        0x57,
+        0x45,
+        0x42,
+        0x50, // WEBP
       ]);
       const res = await httpRequest(
         {

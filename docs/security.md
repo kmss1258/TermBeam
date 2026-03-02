@@ -11,7 +11,83 @@ TermBeam provides access to a real shell on your machine. **Security is critical
 
 ## Threat Model
 
-TermBeam is designed for **trusted local networks**. It is NOT designed as a production-grade remote access tool. Use with caution when exposing to the internet.
+TermBeam exposes a real shell over the network. The risk depends entirely on **how** you run it. Understanding the operating modes below helps you make informed decisions.
+
+### Operating Modes
+
+TermBeam has three access layers that combine to determine your risk profile:
+
+| Mode                          | Command                                    | Who Can Connect                       | Auth                              | Risk      |
+| ----------------------------- | ------------------------------------------ | ------------------------------------- | --------------------------------- | --------- |
+| **Default (private tunnel)**  | `termbeam`                                 | Only you (Microsoft login + password) | Auto-password + tunnel owner auth | ✅ Low    |
+| **Public tunnel**             | `termbeam --public`                        | Anyone with the URL + password        | Auto-password                     | ⚠️ Medium |
+| **LAN-only (localhost)**      | `termbeam --no-tunnel`                     | Local machine only                    | Auto-password                     | ✅ Low    |
+| **LAN-only (all interfaces)** | `termbeam --no-tunnel --lan`               | Any device on your network            | Auto-password                     | ⚠️ Medium |
+| **Localhost, no password**    | `termbeam --no-tunnel --no-password`       | Local processes only                  | None                              | ⚠️ Medium |
+| **LAN, no password**          | `termbeam --no-tunnel --no-password --lan` | Anyone on your network                | None                              | 🔴 High   |
+
+!!! warning "`--public --no-password` is blocked"
+The CLI refuses to start with a public tunnel and no password.
+
+### Private Tunnel (Default)
+
+The default mode creates an ephemeral [Azure DevTunnel](https://learn.microsoft.com/en-us/azure/developer/dev-tunnels/) that requires **two layers of authentication**:
+
+1. **Microsoft account login** — only the tunnel owner can access the URL
+2. **TermBeam password** — auto-generated on each run
+
+This is the safest way to access your terminal remotely. The tunnel URL is HTTPS, the connection is encrypted end-to-end, and the URL is unguessable.
+
+### Public Tunnel
+
+With `--public`, the tunnel URL is accessible to anyone who has it — no Microsoft login required. Password authentication is still enforced. This mode is useful for sharing temporary access, but the terminal is internet-accessible and protected only by the password and rate limiting (5 attempts/min/IP).
+
+### LAN Exposure
+
+With `--lan` or `--host 0.0.0.0`, TermBeam binds to all network interfaces. Any device on your local network can reach the server. On trusted home networks this may be acceptable; on shared or public networks (coffee shops, coworking spaces, hotel Wi-Fi) this is risky.
+
+### Safe Defaults
+
+Out of the box, TermBeam is configured conservatively:
+
+- ✅ **Password auto-generated** — a strong random password is created on every run
+- ✅ **Localhost bind** — server listens on `127.0.0.1` only
+- ✅ **Private tunnel** — tunnel requires Microsoft account login (owner-only)
+- ✅ **Ephemeral tunnel** — tunnel URL is deleted when TermBeam exits
+- ✅ **Security headers** — X-Frame-Options, CSP, no-cache, nosniff on all responses
+- ✅ **Rate-limited login** — 5 attempts per minute per IP
+- ✅ **httpOnly cookies** — tokens not accessible to JavaScript
+- ✅ **WebSocket origin validation** — cross-origin connections rejected
+- ✅ **Shell path validation** — only detected shells allowed
+
+### Dangerous Modes
+
+The following flags increase your attack surface. Use them only when you understand the trade-offs.
+
+| Flag                       | Effect                              | When Acceptable                                                   |
+| -------------------------- | ----------------------------------- | ----------------------------------------------------------------- |
+| `--public`                 | Removes Microsoft login from tunnel | Sharing temporary access with someone without a Microsoft account |
+| `--no-password`            | Removes password auth               | Localhost-only on a single-user machine                           |
+| `--lan` / `--host 0.0.0.0` | Binds to all interfaces             | Trusted home network with password enabled                        |
+| `--lan --no-password`      | LAN-accessible, no auth             | **Not recommended**                                               |
+
+### Quick Safety Checklist
+
+Before running TermBeam, verify:
+
+- [ ] **Password is enabled** — don't use `--no-password` unless localhost-only on a trusted machine
+- [ ] **Tunnel is private** — don't use `--public` unless you specifically need anonymous tunnel access
+- [ ] **Bind is localhost** — don't use `--lan` unless you need LAN access on a trusted network
+- [ ] **Close when done** — TermBeam is not a daemon; don't leave it running unattended
+- [ ] **Check the network** — on shared/public Wi-Fi, stick to defaults
+
+### Work vs Personal Machine
+
+**Personal machine (home network):** Default settings are appropriate. If you need LAN access (e.g., phone on the same Wi-Fi), `--lan` with the auto-generated password is reasonable.
+
+**Work machine (corporate network):** Use defaults (private tunnel + auto-password). Avoid `--public` and `--lan` on corporate networks. TermBeam is a development tool, not a production remote access solution.
+
+!!! danger "Not Recommended" - Running TermBeam with `--public` on machines with access to customer data or secrets - Using `--no-password --lan` on any network you don't fully control - Leaving TermBeam running unattended for extended periods - Using TermBeam as a replacement for SSH, VPN, or proper remote access infrastructure
 
 ## Security Features
 
