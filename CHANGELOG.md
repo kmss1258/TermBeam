@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.9] - 2026-03-02
+
+- fix(auth): remove share-token identifiers from production logs (#56)
+- fix(paste): send filesystem path for image paste instead of URL
+- fix(upload): return opaque IDs instead of absolute file paths
+- fix(auth): make share tokens one-time use (#52)
+- fix(auth): consistent auth responses for API vs UI routes (#51)
+
 ## [1.2.8] - 2026-03-02
 
 - fix(server): improve startup banner colors and remove clipboard notice
