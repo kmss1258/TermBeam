@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.2.4] - 2026-03-02
+
+- feat(terminal): add scroll-to-bottom button, write coalescer, and E2E test infra (#31)
+
 ## [1.2.3] - 2026-03-01
 
 - fix(ui): prevent session cards from shrinking in side panel
