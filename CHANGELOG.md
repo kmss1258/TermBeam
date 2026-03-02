@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.5] - 2026-03-02
+
+- feat(tunnel): make tunnel access private by default with --public opt-in
+- docs: update mobile UI section to use a table for screenshots
+- Implement code structure updates and remove redundant sections
+- docs: add mobile screenshots to README
+- docs(skill): emphasize waiting for all CI jobs including E2E before release
+
 ## [1.2.4] - 2026-03-02
 
 - feat(terminal): add scroll-to-bottom button, write coalescer, and E2E test infra (#31)
