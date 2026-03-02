@@ -43,19 +43,23 @@ termbeam
         ██║   ███████╗██║  ██║██║ ╚═╝ ██║██████╔╝███████╗██║  ██║██║ ╚═╝ ██║
         ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚═════╝ ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝
 
-     Beam your terminal to any device 📡
+     Beam your terminal to any device 📡  v1.2.10
 
-     Local:    http://localhost:3456
-     LAN:      http://192.168.1.42:3456
-     Public:   https://abc123.devtunnels.ms
      Shell:    /bin/zsh
      Session:  a1b2c3d4
      Auth:     🔒 password
+     Bind:     0.0.0.0 (LAN accessible)
 
+     Public:   https://abc123.devtunnels.ms
+     Local:    http://localhost:3456
+     LAN:      http://192.168.1.42:3456
+
+     █▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀█
+     █ (QR code here) █
+     █▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄█
+
+     Scan the QR code or open: https://abc123.devtunnels.ms
      Password: xK9mP2vL8nQ4wR7j
-     (copied to clipboard)
-
-     Scan the QR code or open the Public URL
    ```
 
 3. **On your phone:** Scan the QR code or type the LAN URL
@@ -99,16 +103,18 @@ termbeam
 
 The bottom touch bar provides quick access to:
 
-| Button  | Key                                        |
-| ------- | ------------------------------------------ |
-| ↑ ↓ ← → | Arrow keys                                 |
-| Tab     | Tab completion                             |
-| Enter   | Return                                     |
-| Esc     | Escape                                     |
-| ^C      | Ctrl+C (interrupt)                         |
-| ^D      | Ctrl+D (EOF)                               |
-| ^Z      | Ctrl+Z (suspend)                           |
-| ^L      | Ctrl+L (clear)                             |
-| Copy    | Copy terminal selection to clipboard       |
-| Paste   | Paste from clipboard (with fallback modal) |
-| A+ / A- | Zoom in/out                                |
+| Button  | Action                                              |
+| ------- | --------------------------------------------------- |
+| Esc     | Escape                                              |
+| Copy    | Copy terminal content to clipboard (text overlay)   |
+| Paste   | Paste from clipboard (with fallback modal)          |
+| Home    | Move cursor to beginning of line                    |
+| End     | Move cursor to end of line                          |
+| ↑ ↓ ← → | Arrow keys                                          |
+| ↵       | Enter / Return                                      |
+| Ctrl    | Toggle Ctrl modifier (tap, then press another key)  |
+| Shift   | Toggle Shift modifier (tap, then press another key) |
+| Tab     | Tab completion                                      |
+| ^C      | Ctrl+C (interrupt process)                          |
+
+Font size can be adjusted with **−** / **+** buttons in the top toolbar.

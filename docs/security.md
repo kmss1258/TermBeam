@@ -26,8 +26,9 @@ TermBeam has three access layers that combine to determine your risk profile:
 | **Localhost, no password**    | `termbeam --no-tunnel --no-password`       | Local processes only                  | None                              | ⚠️ Medium |
 | **LAN, no password**          | `termbeam --no-tunnel --no-password --lan` | Anyone on your network                | None                              | 🔴 High   |
 
+<!-- prettier-ignore -->
 !!! warning "`--public --no-password` is blocked"
-The CLI refuses to start with a public tunnel and no password.
+    The CLI refuses to start with a public tunnel and no password.
 
 ### Private Tunnel (Default)
 
@@ -87,7 +88,12 @@ Before running TermBeam, verify:
 
 **Work machine (corporate network):** Use defaults (private tunnel + auto-password). Avoid `--public` and `--lan` on corporate networks. TermBeam is a development tool, not a production remote access solution.
 
-!!! danger "Not Recommended" - Running TermBeam with `--public` on machines with access to customer data or secrets - Using `--no-password --lan` on any network you don't fully control - Leaving TermBeam running unattended for extended periods - Using TermBeam as a replacement for SSH, VPN, or proper remote access infrastructure
+<!-- prettier-ignore -->
+!!! danger "Not Recommended"
+    - Running TermBeam with `--public` on machines with access to customer data or secrets
+    - Using `--no-password --lan` on any network you don't fully control
+    - Leaving TermBeam running unattended for extended periods
+    - Using TermBeam as a replacement for SSH, VPN, or proper remote access infrastructure
 
 ## Security Features
 
@@ -149,8 +155,9 @@ Every response includes:
 
 ## Best Practices
 
+<!-- prettier-ignore -->
 !!! danger "Never Run Without a Password on a Public Network"
-Without authentication, anyone on the network can access your terminal with your user permissions.
+    Without authentication, anyone on the network can access your terminal with your user permissions.
 
 1. **Password is on by default** — use `--no-password` only for trusted localhost scenarios. `--public` requires password authentication and will refuse to start without it
 2. **Localhost is the default** — use `--lan` only when you need LAN access

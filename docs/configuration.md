@@ -7,21 +7,21 @@ description: All TermBeam CLI flags and options — ports, passwords, tunnels, s
 
 ## CLI Flags
 
-| Flag                  | Description                                                      | Default   |
-| --------------------- | ---------------------------------------------------------------- | --------- |
-| `--password <pw>`     | Set access password (also accepts `--password=<pw>`)             | None      |
-| `--generate-password` | Auto-generate a secure password (default behavior)               | On        |
-| `--no-password`       | Disable auto-generated password (cannot combine with `--public`) | —         |
-| `--tunnel`            | Create an ephemeral devtunnel URL (private access)               | On        |
-| `--no-tunnel`         | Disable tunnel                                                   | —         |
-| `--persisted-tunnel`  | Create a reusable devtunnel URL (stable across restarts)         | Off       |
-| `--public`            | Allow public tunnel access (no Microsoft login required)         | Off       |
-| `--port <port>`       | Server port                                                      | `3456`    |
-| `--host <addr>`       | Bind address                                                     | `127.0.0.1` |
-| `--lan`               | Bind to all interfaces (LAN access)                              | Off       |
-| `-h, --help`          | Show help                                                        | —         |
-| `-v, --version`       | Show version                                                     | —         |
-| `--log-level <level>` | Set log verbosity: `error`, `warn`, `info`, `debug`              | `info`    |
+| Flag                  | Description                                                      | Default        |
+| --------------------- | ---------------------------------------------------------------- | -------------- |
+| `--password <pw>`     | Set access password (also accepts `--password=<pw>`)             | Auto-generated |
+| `--generate-password` | Auto-generate a secure password (default behavior)               | On             |
+| `--no-password`       | Disable password authentication (cannot combine with `--public`) | —              |
+| `--tunnel`            | Create an ephemeral devtunnel URL (private access)               | On             |
+| `--no-tunnel`         | Disable tunnel                                                   | —              |
+| `--persisted-tunnel`  | Create a reusable devtunnel URL (stable across restarts)         | Off            |
+| `--public`            | Allow public tunnel access (no Microsoft login required)         | Off            |
+| `--port <port>`       | Server port                                                      | `3456`         |
+| `--host <addr>`       | Bind address                                                     | `127.0.0.1`    |
+| `--lan`               | Bind to all interfaces (LAN access)                              | Off            |
+| `-h, --help`          | Show help                                                        | —              |
+| `-v, --version`       | Show version                                                     | —              |
+| `--log-level <level>` | Set log verbosity: `error`, `warn`, `info`, `debug`              | `info`         |
 
 ## Environment Variables
 
@@ -34,14 +34,17 @@ description: All TermBeam CLI flags and options — ports, passwords, tunnels, s
 | `SHELL`              | Fallback shell on Unix (used only if auto-detection fails)    | `/bin/sh`         |
 | `COMSPEC`            | Fallback shell on Windows (used only if auto-detection fails) | `cmd.exe`         |
 
+<!-- prettier-ignore -->
 !!! note
-CLI flags take precedence over environment variables.
+    CLI flags take precedence over environment variables.
 
+<!-- prettier-ignore -->
 !!! info "Shell Auto-Detection"
-TermBeam auto-detects your current shell by inspecting the parent process tree. The `SHELL` (Unix) and `COMSPEC` (Windows) environment variables are only used as fallbacks when detection fails.
+    TermBeam auto-detects your current shell by inspecting the parent process tree. The `SHELL` (Unix) and `COMSPEC` (Windows) environment variables are only used as fallbacks when detection fails.
 
+<!-- prettier-ignore -->
 !!! info "Legacy Variables"
-The environment variables `PTY_PASSWORD` and `PTY_CWD` are also supported as fallbacks for `TERMBEAM_PASSWORD` and `TERMBEAM_CWD` respectively.
+    The environment variables `PTY_PASSWORD` and `PTY_CWD` are also supported as fallbacks for `TERMBEAM_PASSWORD` and `TERMBEAM_CWD` respectively.
 
 ## Examples
 
@@ -88,7 +91,7 @@ termbeam --lan
 # Allow LAN access (equivalent to --lan)
 termbeam --host 0.0.0.0
 
-# Create a public tunnel (internet access) — on by default
+# Tunnel is on by default (private, owner-only access)
 termbeam
 ```
 
@@ -112,10 +115,14 @@ For a **stable URL** that persists across restarts, use `--persisted-tunnel`:
 termbeam --persisted-tunnel --password mysecret
 ```
 
-!!! info "Persisted vs Ephemeral Tunnels" - `--tunnel` — Creates a fresh tunnel each time, deleted on shutdown. Good for one-off use. - `--persisted-tunnel` — Saves the tunnel ID to `~/.termbeam/tunnel.json` and reuses it across restarts (30-day expiry). The URL stays the same so you can bookmark it on your phone. To get a fresh URL, just switch back to `--tunnel`.
+<!-- prettier-ignore -->
+!!! info "Persisted vs Ephemeral Tunnels"
+    - `--tunnel` — Creates a fresh tunnel each time, deleted on shutdown. Good for one-off use.
+    - `--persisted-tunnel` — Saves the tunnel ID to `~/.termbeam/tunnel.json` and reuses it across restarts (30-day expiry). The URL stays the same so you can bookmark it on your phone. To get a fresh URL, just switch back to `--tunnel`.
 
+<!-- prettier-ignore -->
 !!! warning
-A password is always auto-generated when using a tunnel. By default, tunnel access is private (owner-only via Microsoft login). Use `--public` to allow public access. **`--public` cannot be combined with `--no-password`** — TermBeam will refuse to start to prevent unauthenticated public exposure.
+    A password is always auto-generated by default. By default, tunnel access is private (owner-only via Microsoft login). Use `--public` to allow public access. **`--public` cannot be combined with `--no-password`** — TermBeam will refuse to start to prevent unauthenticated public exposure.
 
 Requirements:
 

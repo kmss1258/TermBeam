@@ -19,8 +19,9 @@ To stop it:
 kill $(cat ~/.termbeam.pid)
 ```
 
+<!-- prettier-ignore -->
 !!! warning
-`nohup` won't restart TermBeam if it crashes. For production use, prefer PM2 or a system service.
+    `nohup` won't restart TermBeam if it crashes. For production use, prefer PM2 or a system service.
 
 ## PM2 (Recommended) 🚀
 
@@ -161,19 +162,28 @@ launchctl unload ~/Library/LaunchAgents/com.termbeam.plist
    - Arguments: `C:\Users\you\AppData\Roaming\npm\node_modules\termbeam\bin\termbeam.js --no-tunnel --password mysecret`
 5. **Settings**: Check "Restart on failure", set retry to 1 minute
 
+<!-- prettier-ignore -->
 !!! tip
-On Windows, [NSSM](https://nssm.cc/) (Non-Sucking Service Manager) is a great alternative for running Node.js apps as proper Windows services:
-`powershell
+    On Windows, [NSSM](https://nssm.cc/) (Non-Sucking Service Manager) is a great alternative for running Node.js apps as proper Windows services:
+
+    ```powershell
     nssm install TermBeam node "C:\path\to\termbeam\bin\termbeam.js" --no-tunnel --password mysecret
     nssm start TermBeam
-    `
+    ```
 
 ## Tips
 
+<!-- prettier-ignore -->
 !!! info "Password Management"
-Since TermBeam auto-generates a password by default, background services **must** use `--password` or the `TERMBEAM_PASSWORD` environment variable to set a known password — otherwise the generated password is lost in the service logs.
+    Since TermBeam auto-generates a password by default, background services **must** use `--password` or the `TERMBEAM_PASSWORD` environment variable to set a known password — otherwise the generated password is lost in the service logs.
 
+<!-- prettier-ignore -->
 !!! info "Pairing with DevTunnel"
-If you use `--tunnel` with a background service, consider the persistent tunnel feature (when available) so your tunnel URL stays the same across restarts.
+    If you use `--tunnel` with a background service, consider the persistent tunnel feature (when available) so your tunnel URL stays the same across restarts.
 
-!!! tip "Which method should I use?" - **Quick test?** → `nohup` - **Dev machine?** → PM2 (easiest setup, great logs) - **Server/always-on?** → systemd or launchd (OS-native, starts on boot) - **Windows?** → Task Scheduler or NSSM
+<!-- prettier-ignore -->
+!!! tip "Which method should I use?"
+    - **Quick test?** → `nohup`
+    - **Dev machine?** → PM2 (easiest setup, great logs)
+    - **Server/always-on?** → systemd or launchd (OS-native, starts on boot)
+    - **Windows?** → Task Scheduler or NSSM

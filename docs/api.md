@@ -6,8 +6,9 @@ TermBeam exposes a REST API and WebSocket interface.
 
 All API endpoints (except `/login`, `/api/auth`, and `/api/version`) require authentication via cookie or Bearer token.
 
+<!-- prettier-ignore -->
 !!! note
-Bearer authentication accepts the raw password in the `Authorization: Bearer <password>` header, not a session token.
+    Bearer authentication accepts the raw password in the `Authorization: Bearer <password>` header, not a session token.
 
 ### Authentication
 
@@ -65,12 +66,12 @@ List all active sessions.
     "lastActivity": 1719849600000
   }
 ]
-
-| Field          | Type   | Description                                    |
-| -------------- | ------ | ---------------------------------------------- |
-| `color`        | string | Hex color assigned to the session               |
-| `lastActivity` | number | Unix timestamp (ms) of the last PTY output      |
 ```
+
+| Field          | Type   | Description                                |
+| -------------- | ------ | ------------------------------------------ |
+| `color`        | string | Hex color assigned to the session          |
+| `lastActivity` | number | Unix timestamp (ms) of the last PTY output |
 
 #### `POST /api/sessions`
 
@@ -220,7 +221,7 @@ List available shells on the host system.
 
 #### `GET /api/share-token`
 
-Generate a fresh share token for sharing access. The token is reusable within its 5-minute validity window. Requires authentication.
+Generate a fresh share token for sharing access. The token is single-use and expires after 5 minutes. Requires authentication.
 
 **Response (200):**
 
@@ -228,7 +229,7 @@ Generate a fresh share token for sharing access. The token is reusable within it
 { "url": "https://your-tunnel-url/?ott=<token>" }
 ````
 
-The returned URL auto-logs in whoever opens it. The token is reusable and expires after 5 minutes. When accessed through a tunnel, the URL uses the public tunnel address.
+The returned URL auto-logs in whoever opens it. The token is consumed on first use and expires after 5 minutes. When accessed through a tunnel, the URL uses the public tunnel address.
 
 **Response (404):**
 
@@ -289,6 +290,12 @@ Upload an image file. The request body is the raw image data with the appropriat
 { "error": "No image data" }
 ```
 
+```json
+{ "error": "File content does not match declared image type" }
+```
+
+Returned when the file's magic bytes don't match the declared `Content-Type` header.
+
 **Response (413):**
 
 ```json
@@ -296,6 +303,18 @@ Upload an image file. The request body is the raw image data with the appropriat
 ```
 
 Maximum file size is 10 MB.
+
+#### `GET /uploads/:id`
+
+Serve a previously uploaded file by its opaque ID. Requires authentication.
+
+**Response:** The file content with appropriate content type.
+
+**Response (404):**
+
+```json
+{ "error": "not found" }
+```
 
 ---
 
@@ -307,10 +326,16 @@ Reverse-proxies requests to a service running on `127.0.0.1:<port>`. All HTTP me
 
 Requires authentication (cookie or Bearer token).
 
+<!-- prettier-ignore -->
 !!! warning "Single-port proxy"
-The preview proxies **one port at a time** via HTTP only. It does not proxy WebSocket connections, so live-reload and HMR will not work. Each request is forwarded individually — there is no persistent upstream connection.
+    The preview proxies **one port at a time** via HTTP only. It does not proxy WebSocket connections, so live-reload and HMR will not work. Each request is forwarded individually — there is no persistent upstream connection.
 
-!!! info "Limitations when accessed through a tunnel" - **Server-rendered apps** (Next.js SSR, Rails, Django) work best — the browser receives complete HTML with no extra fetches. - **Client-side SPAs** may break if they make API calls to a different port or use hardcoded `localhost` URLs. Apps that use a single port with an internal reverse proxy (e.g., nginx proxying `/api` to a backend) work fine. - **Multi-port architectures** (e.g., frontend on port 3000 making API calls to port 4000) won't work unless the app routes all requests through TermBeam's preview proxy (e.g., `/preview/4000/api` instead of `localhost:4000/api`). - The upstream service must be listening on `127.0.0.1` (localhost) on the machine running TermBeam.
+<!-- prettier-ignore -->
+!!! info "Limitations when accessed through a tunnel"
+    - **Server-rendered apps** (Next.js SSR, Rails, Django) work best — the browser receives complete HTML with no extra fetches.
+    - **Client-side SPAs** may break if they make API calls to a different port or use hardcoded `localhost` URLs. Apps that use a single point with an internal reverse proxy (e.g., nginx proxying `/api` to a backend) work fine.
+    - **Multi-port architectures** (e.g., frontend on port 3000 making API calls to port 4000) won't work unless the app routes all requests through TermBeam's preview proxy (e.g., `/preview/4000/api` instead of `localhost:4000/api`).
+    - The upstream service must be listening on `127.0.0.1` (localhost) on the machine running TermBeam.
 
 **Response:** The upstream response is streamed back with its original status code and headers.
 
@@ -363,6 +388,14 @@ or with an existing token:
 ```json
 { "type": "auth_ok" }
 ```
+
+**Auth Failure:**
+
+```json
+{ "type": "error", "message": "Unauthorized" }
+```
+
+The connection is closed after sending this message. Sending any non-auth message before authenticating also results in this error and connection closure.
 
 #### Attach to Session
 

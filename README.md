@@ -121,6 +121,8 @@ termbeam --lan                    # shortcut for --host 0.0.0.0
 | `--host <addr>`       | Bind address                                         | `127.0.0.1`    |
 | `--lan`               | Bind to all interfaces (LAN access)                  | Off            |
 | `--log-level <level>` | Log verbosity (error/warn/info/debug)                | `info`         |
+| `-h, --help`          | Show help                                            | —              |
+| `-v, --version`       | Show version                                         | —              |
 
 Environment variables: `PORT`, `TERMBEAM_PASSWORD`, `TERMBEAM_CWD`, `TERMBEAM_LOG_LEVEL`, `SHELL` (Unix fallback), `COMSPEC` (Windows fallback). See [Configuration docs](https://dorlugasigal.github.io/TermBeam/configuration/).
 
@@ -128,13 +130,17 @@ Environment variables: `PORT`, `TERMBEAM_PASSWORD`, `TERMBEAM_CWD`, `TERMBEAM_LO
 
 TermBeam auto-generates a password and creates a tunnel by default, so your terminal is protected out of the box. By default, the server binds to `127.0.0.1` (localhost only). Use `--lan` or `--host 0.0.0.0` to allow LAN access, or `--no-tunnel` to disable the tunnel.
 
-Auth uses secure httpOnly cookies with 24-hour expiry, login is rate-limited to 5 attempts per minute, and security headers (X-Frame-Options, X-Content-Type-Options, etc.) are set on all responses. The QR code on startup embeds a share token for password-free login — the token is one-time use and expires after 5 minutes, which handles tunnel proxy retries and link preview services. API clients that can't use cookies can authenticate with an `Authorization: Bearer <password>` header.
+Auth uses secure httpOnly cookies with 24-hour expiry, login is rate-limited to 5 attempts per minute, and security headers (X-Frame-Options, X-Content-Type-Options, etc.) are set on all responses. Each QR code contains a single-use share token (5-minute expiry) for password-free login. API clients that can't use cookies can authenticate with an `Authorization: Bearer <password>` header.
 
 For the full threat model, safe usage guidance, and a quick safety checklist, see [SECURITY.md](SECURITY.md). For detailed security feature documentation, see the [Security Guide](https://dorlugasigal.github.io/TermBeam/security/).
 
 ## Contributing
 
 Contributions welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for version history.
 
 ## License
 

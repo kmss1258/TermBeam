@@ -27,7 +27,7 @@ Built for developers who need quick remote terminal access without the hassle of
 ## Quick Start
 
 ```bash
-npx termbeam --generate-password
+npx termbeam
 ```
 
 Scan the QR code printed in your terminal, or open the URL on your phone. That's it.

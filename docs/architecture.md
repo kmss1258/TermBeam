@@ -9,6 +9,7 @@ termbeam/
 ├── src/
 │   ├── server.js            # Main orchestrator
 │   ├── cli.js               # Argument parsing & help
+│   ├── devtunnel-install.js # DevTunnel CLI auto-installer
 │   ├── auth.js              # Authentication & rate limiting
 │   ├── sessions.js          # PTY session management
 │   ├── routes.js            # Express HTTP routes
@@ -27,8 +28,11 @@ termbeam/
 ├── test/
 │   ├── auth.test.js
 │   ├── cli.test.js
+│   ├── devtunnel-install.test.js
+│   ├── e2e-keybar.test.js
 │   ├── integration.test.js
 │   ├── logger.test.js
+│   ├── preview.test.js
 │   ├── routes.test.js
 │   ├── sessions.test.js
 │   ├── shells.test.js
@@ -71,7 +75,7 @@ Reverse-proxies HTTP requests from `/preview/:port/*` to services running on `12
 
 ### `shells.js` — Shell Detection
 
-Detects available shells on the host system. Returns a list of shell objects with `name`, `path`, and `cmd` fields. Cross-platform: scans known paths on Unix and queries the registry on Windows.
+Detects available shells on the host system. Returns a list of shell objects with `name`, `path`, and `cmd` fields. Cross-platform: scans known paths on Unix and queries PATH via the `where` command on Windows.
 
 ### `logger.js` — Logger
 
@@ -80,6 +84,10 @@ Structured logger with configurable levels (`error`, `warn`, `info`, `debug`). U
 ### `tunnel.js` — DevTunnel
 
 Manages Azure DevTunnel lifecycle: login, create, host, cleanup.
+
+### `devtunnel-install.js` — DevTunnel Installer
+
+Handles automatic installation of the DevTunnel CLI when it's not found on the system. Prompts the user interactively and installs via the appropriate package manager (brew on macOS, curl on Linux, winget on Windows). Used by `server.js` during startup when tunnel mode is enabled.
 
 ### `version.js` — Version Detection
 
