@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.2.10] - 2026-03-02
+
+- fix(test): use real PNG magic bytes in upload serve test
+- feat(upload): validate image content by magic bytes (#55)
+
 ## [1.2.9] - 2026-03-02
 
 - fix(auth): remove share-token identifiers from production logs (#56)
