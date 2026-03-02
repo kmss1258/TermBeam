@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.2.8] - 2026-03-02
+
+- fix(server): improve startup banner colors and remove clipboard notice
+- chore(deps): bump lint-staged from 16.2.7 to 16.3.1 (#50)
+- chore(ci): bump actions/upload-artifact from 4 to 7 (#49)
+- feat(cli): change default bind from 0.0.0.0 to 127.0.0.1 (#48)
+- feat(auth): rate-limit failed Bearer auth attempts (#46)
+- feat(auth): set cookie Secure flag dynamically based on HTTPS (#47)
+
 ## [1.2.7] - 2026-03-02
 
 - docs: note --public requires password in README and docs
