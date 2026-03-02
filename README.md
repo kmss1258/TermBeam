@@ -110,7 +110,7 @@ termbeam --host 127.0.0.1        # restrict to localhost (default: 0.0.0.0)
 | Flag                  | Description                                          | Default        |
 | --------------------- | ---------------------------------------------------- | -------------- |
 | `--password <pw>`     | Set access password (also accepts `--password=<pw>`) | Auto-generated |
-| `--no-password`       | Disable password                                     | —              |
+| `--no-password`       | Disable password (cannot combine with `--public`)    | —              |
 | `--generate-password` | Auto-generate a secure password                      | On             |
 | `--tunnel`            | Create an ephemeral devtunnel URL (private)          | On             |
 | `--no-tunnel`         | Disable tunnel (LAN-only)                            | —              |

@@ -7,20 +7,20 @@ description: All TermBeam CLI flags and options — ports, passwords, tunnels, s
 
 ## CLI Flags
 
-| Flag                  | Description                                              | Default   |
-| --------------------- | -------------------------------------------------------- | --------- |
-| `--password <pw>`     | Set access password (also accepts `--password=<pw>`)     | None      |
-| `--generate-password` | Auto-generate a secure password (default behavior)       | On        |
-| `--no-password`       | Disable auto-generated password                          | —         |
-| `--tunnel`            | Create an ephemeral devtunnel URL (private access)       | On        |
-| `--no-tunnel`         | Disable tunnel                                           | —         |
-| `--persisted-tunnel`  | Create a reusable devtunnel URL (stable across restarts) | Off       |
-| `--public`            | Allow public tunnel access (no Microsoft login required) | Off       |
-| `--port <port>`       | Server port                                              | `3456`    |
-| `--host <addr>`       | Bind address                                             | `0.0.0.0` |
-| `-h, --help`          | Show help                                                | —         |
-| `-v, --version`       | Show version                                             | —         |
-| `--log-level <level>` | Set log verbosity: `error`, `warn`, `info`, `debug`      | `info`    |
+| Flag                  | Description                                                      | Default   |
+| --------------------- | ---------------------------------------------------------------- | --------- |
+| `--password <pw>`     | Set access password (also accepts `--password=<pw>`)             | None      |
+| `--generate-password` | Auto-generate a secure password (default behavior)               | On        |
+| `--no-password`       | Disable auto-generated password (cannot combine with `--public`) | —         |
+| `--tunnel`            | Create an ephemeral devtunnel URL (private access)               | On        |
+| `--no-tunnel`         | Disable tunnel                                                   | —         |
+| `--persisted-tunnel`  | Create a reusable devtunnel URL (stable across restarts)         | Off       |
+| `--public`            | Allow public tunnel access (no Microsoft login required)         | Off       |
+| `--port <port>`       | Server port                                                      | `3456`    |
+| `--host <addr>`       | Bind address                                                     | `0.0.0.0` |
+| `-h, --help`          | Show help                                                        | —         |
+| `-v, --version`       | Show version                                                     | —         |
+| `--log-level <level>` | Set log verbosity: `error`, `warn`, `info`, `debug`              | `info`    |
 
 ## Environment Variables
 
@@ -109,7 +109,7 @@ termbeam --persisted-tunnel --password mysecret
 !!! info "Persisted vs Ephemeral Tunnels" - `--tunnel` — Creates a fresh tunnel each time, deleted on shutdown. Good for one-off use. - `--persisted-tunnel` — Saves the tunnel ID to `~/.termbeam/tunnel.json` and reuses it across restarts (30-day expiry). The URL stays the same so you can bookmark it on your phone. To get a fresh URL, just switch back to `--tunnel`.
 
 !!! warning
-A password is always auto-generated when using a tunnel. By default, tunnel access is private (owner-only via Microsoft login). Use `--public` to allow public access.
+A password is always auto-generated when using a tunnel. By default, tunnel access is private (owner-only via Microsoft login). Use `--public` to allow public access. **`--public` cannot be combined with `--no-password`** — TermBeam will refuse to start to prevent unauthenticated public exposure.
 
 Requirements:
 

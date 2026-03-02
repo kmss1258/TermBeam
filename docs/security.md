@@ -75,7 +75,7 @@ Every response includes:
 !!! danger "Never Run Without a Password on a Public Network"
 Without authentication, anyone on the network can access your terminal with your user permissions.
 
-1. **Password is on by default** — use `--no-password` only for trusted localhost scenarios
+1. **Password is on by default** — use `--no-password` only for trusted localhost scenarios. `--public` requires password authentication and will refuse to start without it
 2. **Use `--host 127.0.0.1`** if you don't need LAN access
 3. **Tunnel access is private by default** — only you (the tunnel owner) can access it via Microsoft login. Use `--public` to allow public access, or `--no-tunnel` for LAN-only mode
 4. **Close TermBeam when done** — it's not a daemon, don't leave it running
