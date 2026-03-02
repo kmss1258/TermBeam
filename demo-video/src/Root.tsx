@@ -1,11 +1,11 @@
-import React from "react";
-import { Composition, Folder } from "remotion";
-import { TermBeamDemo, TOTAL_DUR, FPS } from "./TermBeamDemo";
-import { Intro } from "./Intro";
-import { CliTerminal } from "./CliTerminal";
-import { PhoneScene } from "./PhoneScene";
-import { Outro } from "./Outro";
-import { TitleCard } from "./TitleCard";
+import React from 'react';
+import { Composition, Folder } from 'remotion';
+import { TermBeamDemo, TOTAL_DUR, FPS } from './TermBeamDemo';
+import { Intro } from './Intro';
+import { CliTerminal } from './CliTerminal';
+import { PhoneScene } from './PhoneScene';
+import { Outro } from './Outro';
+import { TitleCard } from './TitleCard';
 
 export const RemotionRoot: React.FC = () => {
   return (

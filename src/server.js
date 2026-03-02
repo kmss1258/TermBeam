@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 const os = require('os');
 const path = require('path');
+const readline = require('readline');
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const http = require('http');
@@ -24,6 +25,16 @@ function getLocalIP() {
     }
   }
   return '127.0.0.1';
+}
+
+function confirmAnonymousTunnel() {
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  return new Promise((resolve) => {
+    rl.question('  Do you want to continue with anonymous access? (y/N): ', (answer) => {
+      rl.close();
+      resolve(answer.trim().toLowerCase() === 'y');
+    });
+  });
 }
 
 /**
@@ -78,7 +89,7 @@ function createTermBeamServer(overrides = {}) {
     wss.close();
   }
 
-  function start() {
+  async function start() {
     // Fail early if tunnel mode is on but devtunnel CLI is not installed
     if (config.useTunnel && !findDevtunnel()) {
       log.error('❌ devtunnel CLI is not installed.');
@@ -100,6 +111,28 @@ function createTermBeamServer(overrides = {}) {
       );
       log.error('');
       process.exit(1);
+    }
+
+    // Warn and require consent for anonymous tunnel access
+    if (config.useTunnel && config.anonymousTunnel) {
+      const rd = '\x1b[31m';
+      const yl = '\x1b[33m';
+      const rs = '\x1b[0m';
+      const bd = '\x1b[1m';
+      console.log('');
+      console.log(`  ${rd}${bd}⚠️  DANGER: Public tunnel access requested${rs}`);
+      console.log('');
+      console.log(`  ${yl}This will make your terminal accessible to ANYONE with the URL.${rs}`);
+      console.log(`  ${yl}No Microsoft login will be required to reach the tunnel.${rs}`);
+      console.log(`  ${yl}Only the TermBeam password will protect your terminal.${rs}`);
+      console.log('');
+      const confirmed = await confirmAnonymousTunnel();
+      if (!confirmed) {
+        console.log('');
+        console.log('  Aborted. Restart without --public for private access.');
+        console.log('');
+        process.exit(1);
+      }
     }
 
     return new Promise((resolve) => {
@@ -146,7 +179,10 @@ function createTermBeamServer(overrides = {}) {
 
         let publicUrl = null;
         if (config.useTunnel) {
-          const tunnel = await startTunnel(config.port, { persisted: config.persistedTunnel });
+          const tunnel = await startTunnel(config.port, {
+            persisted: config.persistedTunnel,
+            anonymous: config.anonymousTunnel,
+          });
           if (tunnel) {
             publicUrl = tunnel.url;
             state.shareBaseUrl = publicUrl;

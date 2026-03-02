@@ -13,10 +13,11 @@ const log = {
     if (l !== undefined) currentLevel = l;
   },
   getLevel() {
-    return Object.keys(LEVELS).find(k => LEVELS[k] === currentLevel);
+    return Object.keys(LEVELS).find((k) => LEVELS[k] === currentLevel);
   },
   error(...args) {
-    if (currentLevel >= LEVELS.error) console.error(`[${timestamp()}]`, `[${LABELS.error}]`, ...args);
+    if (currentLevel >= LEVELS.error)
+      console.error(`[${timestamp()}]`, `[${LABELS.error}]`, ...args);
   },
   warn(...args) {
     if (currentLevel >= LEVELS.warn) console.warn(`[${timestamp()}]`, `[${LABELS.warn}]`, ...args);

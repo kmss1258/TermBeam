@@ -89,7 +89,10 @@ describe('logger', () => {
 
   it('messages include timestamp and level prefix', () => {
     log.info('hello');
-    assert.ok(logCalls[0][0].match(/^\[\d{2}:\d{2}:\d{2}\]$/), 'First arg should be [HH:MM:SS] timestamp');
+    assert.ok(
+      logCalls[0][0].match(/^\[\d{2}:\d{2}:\d{2}\]$/),
+      'First arg should be [HH:MM:SS] timestamp',
+    );
     assert.strictEqual(logCalls[0][1], '[INFO]');
     assert.strictEqual(logCalls[0][2], 'hello');
   });

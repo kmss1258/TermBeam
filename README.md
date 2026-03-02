@@ -112,9 +112,10 @@ termbeam --host 127.0.0.1        # restrict to localhost (default: 0.0.0.0)
 | `--password <pw>`     | Set access password (also accepts `--password=<pw>`) | Auto-generated |
 | `--no-password`       | Disable password                                     | —              |
 | `--generate-password` | Auto-generate a secure password                      | On             |
-| `--tunnel`            | Create an ephemeral devtunnel URL                    | On             |
+| `--tunnel`            | Create an ephemeral devtunnel URL (private)          | On             |
 | `--no-tunnel`         | Disable tunnel (LAN-only)                            | —              |
 | `--persisted-tunnel`  | Create a reusable devtunnel URL                      | Off            |
+| `--public`            | Allow public tunnel access                           | Off            |
 | `--port <port>`       | Server port                                          | `3456`         |
 | `--host <addr>`       | Bind address                                         | `0.0.0.0`      |
 | `--log-level <level>` | Log verbosity (error/warn/info/debug)                | `info`         |

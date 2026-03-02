@@ -131,7 +131,11 @@ describe('SessionManager', () => {
     const list = mgr.list();
     assert.ok(list[0].color, 'First session should have a color');
     assert.ok(list[1].color, 'Second session should have a color');
-    assert.notStrictEqual(list[0].color, list[1].color, 'First two sessions should have different colors');
+    assert.notStrictEqual(
+      list[0].color,
+      list[1].color,
+      'First two sessions should have different colors',
+    );
   });
 
   it('should accept a custom color', () => {

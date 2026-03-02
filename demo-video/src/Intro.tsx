@@ -1,34 +1,27 @@
-import React from "react";
-import {
-  AbsoluteFill,
-  interpolate,
-  spring,
-  useCurrentFrame,
-  useVideoConfig,
-} from "remotion";
-import { loadFont } from "@remotion/google-fonts/Inter";
-import { loadFont as loadMono } from "@remotion/google-fonts/JetBrainsMono";
+import React from 'react';
+import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
+import { loadFont } from '@remotion/google-fonts/Inter';
+import { loadFont as loadMono } from '@remotion/google-fonts/JetBrainsMono';
 
-const { fontFamily } = loadFont("normal", {
-  weights: ["400", "700", "800"],
-  subsets: ["latin"],
+const { fontFamily } = loadFont('normal', {
+  weights: ['400', '700', '800'],
+  subsets: ['latin'],
 });
 
-const { fontFamily: monoFont } = loadMono("normal", {
-  weights: ["400", "700"],
-  subsets: ["latin"],
+const { fontFamily: monoFont } = loadMono('normal', {
+  weights: ['400', '700'],
+  subsets: ['latin'],
 });
 
-const GRADIENT_BG =
-  "radial-gradient(ellipse at 30% 20%, #1a1a3e 0%, #0f0c29 40%, #0a0a1a 100%)";
+const GRADIENT_BG = 'radial-gradient(ellipse at 30% 20%, #1a1a3e 0%, #0f0c29 40%, #0a0a1a 100%)';
 
 const ASCII_LINES = [
-  "████████╗███████╗██████╗ ███╗   ███╗██████╗ ███████╗ █████╗ ███╗   ███╗",
-  "╚══██╔══╝██╔════╝██╔══██╗████╗ ████║██╔══██╗██╔════╝██╔══██╗████╗ ████║",
-  "   ██║   █████╗  ██████╔╝██╔████╔██║██████╔╝█████╗  ███████║██╔████╔██║",
-  "   ██║   ██╔══╝  ██╔══██╗██║╚██╔╝██║██╔══██╗██╔══╝  ██╔══██║██║╚██╔╝██║",
-  "   ██║   ███████╗██║  ██║██║ ╚═╝ ██║██████╔╝███████╗██║  ██║██║ ╚═╝ ██║",
-  "   ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚═════╝ ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝",
+  '████████╗███████╗██████╗ ███╗   ███╗██████╗ ███████╗ █████╗ ███╗   ███╗',
+  '╚══██╔══╝██╔════╝██╔══██╗████╗ ████║██╔══██╗██╔════╝██╔══██╗████╗ ████║',
+  '   ██║   █████╗  ██████╔╝██╔████╔██║██████╔╝█████╗  ███████║██╔████╔██║',
+  '   ██║   ██╔══╝  ██╔══██╗██║╚██╔╝██║██╔══██╗██╔══╝  ██╔══██║██║╚██╔╝██║',
+  '   ██║   ███████╗██║  ██║██║ ╚═╝ ██║██████╔╝███████╗██║  ██║██║ ╚═╝ ██║',
+  '   ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚═════╝ ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝',
 ];
 
 export const Intro: React.FC = () => {
@@ -64,11 +57,7 @@ export const Intro: React.FC = () => {
   });
 
   // ── Glow pulse ─────────────────────────────────────────
-  const glowIntensity = interpolate(
-    frame % 60,
-    [0, 30, 60],
-    [0.3, 0.7, 0.3],
-  );
+  const glowIntensity = interpolate(frame % 60, [0, 30, 60], [0.3, 0.7, 0.3]);
 
   // ── Tagline: snappy entrance ───────────────────────────
   const tagSpring = spring({
@@ -88,10 +77,14 @@ export const Intro: React.FC = () => {
     config: { damping: 8, stiffness: 120 },
   });
   const emojiScale = interpolate(emojiSpring, [0, 1], [0, 1.2]);
-  const emojiSettleScale = frame > 45 ? interpolate(
-    spring({ frame, fps, delay: 35, config: { damping: 20, stiffness: 200 } }),
-    [0, 1], [1.2, 1],
-  ) : emojiScale;
+  const emojiSettleScale =
+    frame > 45
+      ? interpolate(
+          spring({ frame, fps, delay: 35, config: { damping: 20, stiffness: 200 } }),
+          [0, 1],
+          [1.2, 1],
+        )
+      : emojiScale;
 
   // ── Subtitle ───────────────────────────────────────────
   const subSpring = spring({
@@ -119,11 +112,11 @@ export const Intro: React.FC = () => {
     <AbsoluteFill
       style={{
         background: GRADIENT_BG,
-        justifyContent: "center",
-        alignItems: "center",
+        justifyContent: 'center',
+        alignItems: 'center',
         fontFamily,
         perspective: 3600,
-        overflow: "hidden",
+        overflow: 'hidden',
       }}
     >
       {/* Ambient particles */}
@@ -131,13 +124,13 @@ export const Intro: React.FC = () => {
         <div
           key={i}
           style={{
-            position: "absolute",
+            position: 'absolute',
             left: `calc(50% + ${p.x}px)`,
             top: `calc(50% + ${p.y}px)`,
             width: p.size,
             height: p.size,
-            borderRadius: "50%",
-            background: "#a78bfa",
+            borderRadius: '50%',
+            background: '#a78bfa',
             opacity: p.opacity,
           }}
         />
@@ -148,18 +141,18 @@ export const Intro: React.FC = () => {
         style={{
           transform: `rotateX(${floatRotateX}deg) rotateY(${floatRotateY}deg) scale(${zoomScale})`,
           opacity: zoomOpacity,
-          transformStyle: "preserve-3d",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
+          transformStyle: 'preserve-3d',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
         }}
       >
         {/* ASCII Logo with glow */}
         <div
           style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
             filter: `drop-shadow(0 0 ${glowIntensity * 40}px rgba(167, 139, 250, ${glowIntensity * 0.6}))`,
           }}
         >
@@ -169,8 +162,8 @@ export const Intro: React.FC = () => {
               style={{
                 fontFamily: monoFont,
                 fontSize: 18,
-                color: "#a78bfa",
-                whiteSpace: "pre",
+                color: '#a78bfa',
+                whiteSpace: 'pre',
                 lineHeight: 1.15,
                 opacity: lineAnimations[i].opacity,
                 transform: `translateY(${lineAnimations[i].y}px) scale(${lineAnimations[i].scale})`,
@@ -201,10 +194,10 @@ export const Intro: React.FC = () => {
             transform: `translateY(${tagY}px)`,
             fontSize: 48,
             fontWeight: 700,
-            color: "#ffffff",
-            textAlign: "center",
+            color: '#ffffff',
+            textAlign: 'center',
             letterSpacing: -0.5,
-            textShadow: "0 2px 30px rgba(167, 139, 250, 0.3)",
+            textShadow: '0 2px 30px rgba(167, 139, 250, 0.3)',
           }}
         >
           Beam your terminal to any device
@@ -217,8 +210,8 @@ export const Intro: React.FC = () => {
             opacity: subOpacity,
             transform: `translateY(${subY}px)`,
             fontSize: 24,
-            color: "rgba(255, 255, 255, 0.45)",
-            textAlign: "center",
+            color: 'rgba(255, 255, 255, 0.45)',
+            textAlign: 'center',
           }}
         >
           Zero install. Zero friction. Just scan and go.

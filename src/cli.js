@@ -15,9 +15,10 @@ Options:
   --password <pw>       Set access password (or TERMBEAM_PASSWORD env var)
   --generate-password   Auto-generate a secure password (default: auto)
   --no-password         Disable password authentication
-  --tunnel              Create a public devtunnel URL (default: on)
+  --tunnel              Create a devtunnel URL (default: on, private access)
   --no-tunnel           Disable tunnel (LAN-only mode)
   --persisted-tunnel    Create a reusable devtunnel URL (stable across restarts)
+  --public              Allow public tunnel access (default: private, owner-only)
   --port <port>         Set port (default: 3456, or PORT env var)
   --host <addr>         Bind address (default: 0.0.0.0)
   --log-level <level>   Set log verbosity: error, warn, info, debug (default: info)
@@ -26,7 +27,9 @@ Options:
 
 Defaults:
   By default, TermBeam enables tunnel + auto-generated password for secure
-  mobile access (clipboard, HTTPS). Use --no-tunnel for LAN-only mode.
+  mobile access (clipboard, HTTPS). Tunnels are private (owner-only via
+  Microsoft login). Use --public for public access, or
+  --no-tunnel for LAN-only mode.
 
 Examples:
   termbeam                          Start with tunnel + auto password
@@ -227,6 +230,7 @@ function parseArgs() {
   let useTunnel = true;
   let noTunnel = false;
   let persistedTunnel = false;
+  let anonymousTunnel = false;
   let explicitPassword = !!password;
 
   const args = process.argv.slice(2);
@@ -243,6 +247,8 @@ function parseArgs() {
     } else if (args[i] === '--persisted-tunnel') {
       useTunnel = true;
       persistedTunnel = true;
+    } else if (args[i] === '--public') {
+      anonymousTunnel = true;
     } else if (args[i].startsWith('--password=')) {
       password = args[i].split('=')[1];
       explicitPassword = true;
@@ -278,6 +284,12 @@ function parseArgs() {
   // --no-tunnel disables the default tunnel
   if (noTunnel) useTunnel = false;
 
+  // --public requires a tunnel
+  if (anonymousTunnel && !useTunnel) {
+    console.error('Error: --public requires a tunnel. Remove --no-tunnel or remove --public.');
+    process.exit(1);
+  }
+
   const shell = filteredArgs[0] || defaultShell;
   const shellArgs = filteredArgs.slice(1);
 
@@ -290,6 +302,7 @@ function parseArgs() {
     password,
     useTunnel,
     persistedTunnel,
+    anonymousTunnel,
     shell,
     shellArgs,
     cwd,

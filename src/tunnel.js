@@ -186,13 +186,25 @@ async function startTunnel(port, options = {}) {
         { stdio: 'pipe' },
       );
     } catch {}
-    try {
-      execFileSync(
-        devtunnelCmd,
-        ['access', 'create', tunnelId, '-p', String(port), '--anonymous'],
-        { stdio: 'pipe' },
-      );
-    } catch {}
+    // Set tunnel access: public (anonymous) or private (owner-only via Microsoft login)
+    if (options.anonymous) {
+      try {
+        execFileSync(
+          devtunnelCmd,
+          ['access', 'create', tunnelId, '-p', String(port), '--anonymous'],
+          { stdio: 'pipe' },
+        );
+      } catch {}
+      log.info('Tunnel access: public (anonymous)');
+    } else {
+      // Remove any existing anonymous access to ensure the tunnel is private
+      try {
+        execFileSync(devtunnelCmd, ['access', 'reset', tunnelId], {
+          stdio: 'pipe',
+        });
+      } catch {}
+      log.info('Tunnel access: private (owner-only via Microsoft login)');
+    }
 
     const hostProc = spawn(devtunnelCmd, ['host', tunnelId], {
       stdio: ['pipe', 'pipe', 'pipe'],

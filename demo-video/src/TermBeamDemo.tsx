@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 import {
   AbsoluteFill,
   Audio,
@@ -9,12 +9,12 @@ import {
   staticFile,
   useCurrentFrame,
   useVideoConfig,
-} from "remotion";
-import { Intro } from "./Intro";
-import { CliTerminal } from "./CliTerminal";
-import { PhoneScene } from "./PhoneScene";
-import { Outro } from "./Outro";
-import { TitleCard } from "./TitleCard";
+} from 'remotion';
+import { Intro } from './Intro';
+import { CliTerminal } from './CliTerminal';
+import { PhoneScene } from './PhoneScene';
+import { Outro } from './Outro';
+import { TitleCard } from './TitleCard';
 
 // ── Timing constants (frames @ 30fps) ───────────────────
 const FPS = 30;
@@ -68,10 +68,10 @@ const FlipExit: React.FC<{
     <AbsoluteFill style={{ perspective: 3600 }}>
       <AbsoluteFill
         style={{
-          transformOrigin: "center bottom",
+          transformOrigin: 'center bottom',
           transform: `rotateX(${rotateX}deg) scale(${scale})`,
           opacity,
-          backfaceVisibility: "hidden",
+          backfaceVisibility: 'hidden',
         }}
       >
         {children}
@@ -85,68 +85,80 @@ export const TermBeamDemo: React.FC = () => {
   const { fps } = useVideoConfig();
 
   return (
-    <AbsoluteFill style={{ background: "#0a0a1a" }}>
+    <AbsoluteFill style={{ background: '#0a0a1a' }}>
       {/* Scale 1080p design to 4K */}
-      <div style={{ position: 'absolute', top: 0, left: 0, width: 1920, height: 1080, transform: 'scale(2)', transformOrigin: 'top left' }}>
-      {/* ── Background Music ──────────────────────────── */}
-      <Audio
-        src={staticFile("music.mp3")}
-        volume={(f) =>
-          interpolate(
-            f,
-            [0, 30, TOTAL_DUR - 60, TOTAL_DUR],
-            [0, 0.25, 0.25, 0],
-            { extrapolateLeft: "clamp", extrapolateRight: "clamp" },
-          )
-        }
-      />
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: 1920,
+          height: 1080,
+          transform: 'scale(2)',
+          transformOrigin: 'top left',
+        }}
+      >
+        {/* ── Background Music ──────────────────────────── */}
+        <Audio
+          src={staticFile('music.mp3')}
+          volume={(f) =>
+            interpolate(f, [0, 30, TOTAL_DUR - 60, TOTAL_DUR], [0, 0.25, 0.25, 0], {
+              extrapolateLeft: 'clamp',
+              extrapolateRight: 'clamp',
+            })
+          }
+        />
 
-      {/* 1. Intro ─────────────────────────────────────── */}
-      <Sequence from={INTRO_START} durationInFrames={INTRO_DUR + FLIP_DUR} name="Intro">
-        <FlipExit exitFrame={INTRO_DUR} frame={frame - INTRO_START} fps={fps}>
-          <Intro />
-        </FlipExit>
-      </Sequence>
+        {/* 1. Intro ─────────────────────────────────────── */}
+        <Sequence from={INTRO_START} durationInFrames={INTRO_DUR + FLIP_DUR} name="Intro">
+          <FlipExit exitFrame={INTRO_DUR} frame={frame - INTRO_START} fps={fps}>
+            <Intro />
+          </FlipExit>
+        </Sequence>
 
-      {/* 2. "SHARE YOUR TERMINAL" — stack ─────────────── */}
-      <Sequence from={TYPO1_START} durationInFrames={TYPO1_DUR + FLIP_DUR} name="Typo-ShareTerminal">
-        <FlipExit exitFrame={TYPO1_DUR} frame={frame - TYPO1_START} fps={fps}>
-          <TitleCard title="Share Your Terminal" mode="stack" />
-        </FlipExit>
-      </Sequence>
+        {/* 2. "SHARE YOUR TERMINAL" — stack ─────────────── */}
+        <Sequence
+          from={TYPO1_START}
+          durationInFrames={TYPO1_DUR + FLIP_DUR}
+          name="Typo-ShareTerminal"
+        >
+          <FlipExit exitFrame={TYPO1_DUR} frame={frame - TYPO1_START} fps={fps}>
+            <TitleCard title="Share Your Terminal" mode="stack" />
+          </FlipExit>
+        </Sequence>
 
-      {/* 3. "ONE COMMAND" — slam ──────────────────────── */}
-      <Sequence from={TYPO2_START} durationInFrames={TYPO2_DUR + FLIP_DUR} name="Typo-OneCommand">
-        <FlipExit exitFrame={TYPO2_DUR} frame={frame - TYPO2_START} fps={fps}>
-          <TitleCard title="One Command" mode="slam" subtitle="npx termbeam" />
-        </FlipExit>
-      </Sequence>
+        {/* 3. "ONE COMMAND" — slam ──────────────────────── */}
+        <Sequence from={TYPO2_START} durationInFrames={TYPO2_DUR + FLIP_DUR} name="Typo-OneCommand">
+          <FlipExit exitFrame={TYPO2_DUR} frame={frame - TYPO2_START} fps={fps}>
+            <TitleCard title="One Command" mode="slam" subtitle="npx termbeam" />
+          </FlipExit>
+        </Sequence>
 
-      {/* 4. CLI Terminal ──────────────────────────────── */}
-      <Sequence from={CLI_START} durationInFrames={CLI_DUR + FLIP_DUR} name="CliTerminal">
-        <FlipExit exitFrame={CLI_DUR} frame={frame - CLI_START} fps={fps}>
-          <CliTerminal />
-        </FlipExit>
-      </Sequence>
+        {/* 4. CLI Terminal ──────────────────────────────── */}
+        <Sequence from={CLI_START} durationInFrames={CLI_DUR + FLIP_DUR} name="CliTerminal">
+          <FlipExit exitFrame={CLI_DUR} frame={frame - CLI_START} fps={fps}>
+            <CliTerminal />
+          </FlipExit>
+        </Sequence>
 
-      {/* 5. "SCAN · TAP · CONNECTED" — rapid ─────────── */}
-      <Sequence from={TYPO3_START} durationInFrames={TYPO3_DUR + FLIP_DUR} name="Typo-ScanTap">
-        <FlipExit exitFrame={TYPO3_DUR} frame={frame - TYPO3_START} fps={fps}>
-          <TitleCard title="Scan the QR | Tap your Session | CONNECTED" mode="rapid" />
-        </FlipExit>
-      </Sequence>
+        {/* 5. "SCAN · TAP · CONNECTED" — rapid ─────────── */}
+        <Sequence from={TYPO3_START} durationInFrames={TYPO3_DUR + FLIP_DUR} name="Typo-ScanTap">
+          <FlipExit exitFrame={TYPO3_DUR} frame={frame - TYPO3_START} fps={fps}>
+            <TitleCard title="Scan the QR | Tap your Session | CONNECTED" mode="rapid" />
+          </FlipExit>
+        </Sequence>
 
-      {/* 6. Phone Scene (merged connect + terminal) ──── */}
-      <Sequence from={PHONE_START} durationInFrames={PHONE_DUR + FLIP_DUR} name="PhoneScene">
-        <FlipExit exitFrame={PHONE_DUR} frame={frame - PHONE_START} fps={fps}>
-          <PhoneScene />
-        </FlipExit>
-      </Sequence>
+        {/* 6. Phone Scene (merged connect + terminal) ──── */}
+        <Sequence from={PHONE_START} durationInFrames={PHONE_DUR + FLIP_DUR} name="PhoneScene">
+          <FlipExit exitFrame={PHONE_DUR} frame={frame - PHONE_START} fps={fps}>
+            <PhoneScene />
+          </FlipExit>
+        </Sequence>
 
-      {/* 7. Outro ─────────────────────────────────────── */}
-      <Sequence from={OUTRO_START} durationInFrames={OUTRO_DUR} name="Outro">
-        <Outro />
-      </Sequence>
+        {/* 7. Outro ─────────────────────────────────────── */}
+        <Sequence from={OUTRO_START} durationInFrames={OUTRO_DUR} name="Outro">
+          <Outro />
+        </Sequence>
       </div>
     </AbsoluteFill>
   );

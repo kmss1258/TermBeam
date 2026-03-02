@@ -3,8 +3,14 @@ const pty = require('node-pty');
 const log = require('./logger');
 
 const SESSION_COLORS = [
-  '#4a9eff', '#4ade80', '#fbbf24', '#c084fc',
-  '#f87171', '#22d3ee', '#fb923c', '#f472b6',
+  '#4a9eff',
+  '#4ade80',
+  '#fbbf24',
+  '#c084fc',
+  '#f87171',
+  '#22d3ee',
+  '#fb923c',
+  '#f472b6',
 ];
 
 class SessionManager {

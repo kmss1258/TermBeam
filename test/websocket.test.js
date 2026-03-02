@@ -128,7 +128,9 @@ describe('WebSocket', () => {
       sessions._add(session);
 
       const ws = createMockWs();
-      wss._simulateConnection(ws, { headers: { host: 'example.com:3000', origin: 'https://example.com' } });
+      wss._simulateConnection(ws, {
+        headers: { host: 'example.com:3000', origin: 'https://example.com' },
+      });
       ws._simulateMessage({ type: 'attach', sessionId: 's1' });
 
       const attached = ws._sent.find((m) => m.type === 'attached');
@@ -138,7 +140,9 @@ describe('WebSocket', () => {
 
     it('should reject connections with mismatched Origin', () => {
       const ws = createMockWs();
-      wss._simulateConnection(ws, { headers: { host: 'example.com:3000', origin: 'https://evil.com' } });
+      wss._simulateConnection(ws, {
+        headers: { host: 'example.com:3000', origin: 'https://evil.com' },
+      });
 
       assert.ok(ws._closed);
       assert.strictEqual(ws._closeCode, 1008);
@@ -150,7 +154,9 @@ describe('WebSocket', () => {
       sessions._add(session);
 
       const ws = createMockWs();
-      wss._simulateConnection(ws, { headers: { host: 'example.com:3000', origin: 'http://localhost:3000' } });
+      wss._simulateConnection(ws, {
+        headers: { host: 'example.com:3000', origin: 'http://localhost:3000' },
+      });
       ws._simulateMessage({ type: 'attach', sessionId: 's1' });
 
       const attached = ws._sent.find((m) => m.type === 'attached');
@@ -163,7 +169,9 @@ describe('WebSocket', () => {
       sessions._add(session);
 
       const ws = createMockWs();
-      wss._simulateConnection(ws, { headers: { host: 'localhost:3000', origin: 'http://192.168.1.1:3000' } });
+      wss._simulateConnection(ws, {
+        headers: { host: 'localhost:3000', origin: 'http://192.168.1.1:3000' },
+      });
       ws._simulateMessage({ type: 'attach', sessionId: 's1' });
 
       const attached = ws._sent.find((m) => m.type === 'attached');
@@ -173,7 +181,9 @@ describe('WebSocket', () => {
 
     it('should reject connections with invalid Origin URL', () => {
       const ws = createMockWs();
-      wss._simulateConnection(ws, { headers: { host: 'example.com:3000', origin: 'not-a-valid-url' } });
+      wss._simulateConnection(ws, {
+        headers: { host: 'example.com:3000', origin: 'not-a-valid-url' },
+      });
 
       assert.ok(ws._closed);
       assert.strictEqual(ws._closeCode, 1008);
