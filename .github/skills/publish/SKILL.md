@@ -144,7 +144,13 @@ If there are multiple types of changes, use the most significant one.
 
      Then continue to Step 6 (CI on `main`).
 
-## Step 6 — Wait for CI to pass
+## Step 6 — Wait for CI to pass (ALL jobs, including E2E)
+
+**CRITICAL: Do NOT proceed to the release step until every CI job has
+completed successfully — this includes unit tests, coverage, lint, AND
+all E2E jobs (ubuntu, windows, macos).** A run showing `conclusion: success`
+at the top level means all jobs passed; if any job is still `in_progress`,
+keep waiting.
 
 Use the GitHub CLI to find the workflow runs triggered by the push and poll
 until they complete:
@@ -156,6 +162,16 @@ gh run list --workflow=ci.yml --branch=main --limit=1 --json databaseId,status,c
 # Watch it until it completes (timeout after 10 minutes)
 gh run watch <run-id> --exit-status
 ```
+
+After the run completes, **verify every job passed** — especially E2E:
+
+```bash
+gh run view <run-id> --json conclusion,jobs \
+  --jq '{conclusion, jobs: [.jobs[] | {name, conclusion}]}'
+```
+
+All jobs must show `conclusion: "success"`. If any job failed or was
+cancelled, do NOT proceed.
 
 If CI fails:
 
