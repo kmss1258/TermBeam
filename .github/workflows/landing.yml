@@ -10,6 +10,9 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: landing
+      url: https://termbeam.pages.dev
     permissions:
       contents: read
       deployments: write
