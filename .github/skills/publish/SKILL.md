@@ -229,7 +229,22 @@ gh run list --workflow=release.yml --limit=1 --json databaseId,status,conclusion
 gh run watch <run-id> --exit-status
 ```
 
-## Step 10 — Report success
+## Step 10 — Wait for smoke test
+
+The smoke test workflow runs automatically after a successful release. Wait for it:
+
+```bash
+# Wait a moment for the smoke test to trigger
+sleep 15
+gh run list --workflow=smoke.yml --limit=1 --json databaseId,status,conclusion
+gh run watch <run-id> --exit-status
+```
+
+The smoke test installs the just-published version from npm via `npx termbeam@latest --help`
+and verifies it works. If it fails, report the error — the npm package may need
+investigation.
+
+## Step 11 — Report success
 
 Once the release workflow completes successfully, report to the user:
 

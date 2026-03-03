@@ -87,7 +87,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "chore(release): v${NEW_VERSION}"
+            git commit -m "chore(release): v${NEW_VERSION} [skip ci]"
           fi
           if git rev-parse "v${NEW_VERSION}" >/dev/null 2>&1; then
             echo "Tag v${NEW_VERSION} already exists, skipping"
