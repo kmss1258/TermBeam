@@ -3554,6 +3554,7 @@
               '<span class="side-panel-card-name">' +
               esc(ms.name) +
               '</span>' +
+              (ms.hasUnread && !isActive ? '<span class="tab-unread"></span>' : '') +
               '<span class="side-panel-card-status" style="background:' +
               safeColor(statusColor) +
               '"></span>' +
