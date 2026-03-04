@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.5.0] - 2026-03-04
+
+- feat(ui): add command notifications, terminal search, and command palette (#68)
+
 ## [1.4.0] - 2026-03-04
 
 - feat(ui): show unread indicator in side panel session cards
