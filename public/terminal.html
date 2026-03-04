@@ -458,6 +458,23 @@
       .tab-close:hover {
         color: var(--danger);
       }
+      .tab-unread {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--accent);
+        flex-shrink: 0;
+        animation: tab-pulse 1.5s ease-in-out infinite;
+      }
+      @keyframes tab-pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.4;
+        }
+      }
       /* ===== Tab Preview ===== */
       #tab-preview {
         display: none;
@@ -2853,6 +2870,7 @@
         // Scroll to bottom when returning from idle / tab switch
         document.addEventListener('visibilitychange', () => {
           if (!document.hidden && activeId) {
+            clearUnreadIndicator();
             const ms = managed.get(activeId);
             if (ms) {
               ms.term.scrollToBottom();
@@ -3112,6 +3130,42 @@
         return ms;
       }
 
+      // Tab title activity indicator for unread output
+      const originalTitle = document.title;
+      let hasUnread = false;
+
+      function playNotificationSound() {
+        try {
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.frequency.value = 440;
+          osc.type = 'sine';
+          gain.gain.setValueAtTime(0.15, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+          osc.start(ctx.currentTime);
+          osc.stop(ctx.currentTime + 0.15);
+          osc.onended = () => ctx.close();
+        } catch {
+          // Audio not available
+        }
+      }
+
+      function markUnreadOutput() {
+        if (!document.hidden || hasUnread) return;
+        hasUnread = true;
+        playNotificationSound();
+        document.title = '(\u25CF) ' + originalTitle;
+      }
+
+      function clearUnreadIndicator() {
+        if (!hasUnread) return;
+        hasUnread = false;
+        document.title = originalTitle;
+      }
+
       function connectSession(ms) {
         if (ms.reconnectTimer) {
           clearTimeout(ms.reconnectTimer);
@@ -3146,6 +3200,12 @@
             if (msg.type === 'output') {
               ms.coalescedWrite(msg.data);
               ms.lastActivity = Date.now();
+              markUnreadOutput();
+              if (ms.id !== activeId && !ms.hasUnread) {
+                ms.hasUnread = true;
+                playNotificationSound();
+                renderTabs();
+              }
             } else if (msg.type === 'attached') {
               if (ms.container.classList.contains('visible')) {
                 sendResize(ms);
@@ -3207,6 +3267,8 @@
       function activateSession(id) {
         if (!managed.has(id)) return;
         activeId = id;
+        const ms = managed.get(id);
+        if (ms) ms.hasUnread = false;
         reconnectOverlay.classList.remove('visible');
 
         // Show/hide panes
@@ -3321,6 +3383,7 @@
               esc(ms.name) +
               '</span>' +
               (activity ? '<span class="tab-activity">' + activity + '</span>' : '') +
+              (ms.hasUnread && !isActive ? '<span class="tab-unread"></span>' : '') +
               '<span class="tab-status" style="background:' +
               safeColor(statusColor) +
               '"></span>' +
@@ -3408,6 +3471,14 @@
             if (e.target.dataset.close) return;
             hidePreview();
             activateSession(tab.dataset.id);
+          });
+
+          // Middle-click to close tab
+          tab.addEventListener('auxclick', (e) => {
+            if (e.button === 1) {
+              e.preventDefault();
+              if (confirm('Close this session?')) removeSession(tab.dataset.id);
+            }
           });
 
           // Desktop: hover preview (non-active tabs only)
