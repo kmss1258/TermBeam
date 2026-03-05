@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.9.0] - 2026-03-05
+
+- docs: restructure README, split getting-started, add troubleshooting and usage guide, fix 15 inaccuracies (#112)
+- docs: add resume and list commands to README
+- feat(resume): add termbeam resume and sessions commands (#109)
+- chore(security): add CODEOWNERS and enable branch protection (#107)
+- chore(security): add CODEOWNERS and enable branch protection
+
 ## [1.8.1] - 2026-03-05
 
 - fix(security): pin mkdocs-material version in pages workflow (#106)
