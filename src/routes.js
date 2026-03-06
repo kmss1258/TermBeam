@@ -308,6 +308,112 @@ function setupRoutes(app, { auth, sessions, config, state }) {
     res.sendFile(filepath);
   });
 
+  // General file upload to a session's working directory
+  app.post('/api/sessions/:id/upload', apiRateLimit, auth.middleware, (req, res) => {
+    const session = sessions.get(req.params.id);
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    const rawName = req.headers['x-filename'];
+    if (!rawName || typeof rawName !== 'string') {
+      return res.status(400).json({ error: 'Missing X-Filename header' });
+    }
+
+    // Sanitize: take only the basename, strip control chars, collapse whitespace
+    const sanitized = path
+      .basename(rawName)
+      .replace(/[\x00-\x1f]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!sanitized || sanitized === '.' || sanitized === '..') {
+      return res.status(400).json({ error: 'Invalid filename' });
+    }
+
+    // Resolve target directory: optional X-Target-Dir header, falls back to session cwd
+    const rawTargetDir = req.headers['x-target-dir'];
+    let targetDir = session.cwd;
+    if (rawTargetDir && typeof rawTargetDir === 'string') {
+      if (!path.isAbsolute(rawTargetDir)) {
+        return res.status(400).json({ error: 'Target directory must be an absolute path' });
+      }
+      const resolved = path.resolve(rawTargetDir);
+      try {
+        if (fs.statSync(resolved).isDirectory()) {
+          targetDir = resolved;
+        } else {
+          return res.status(400).json({ error: 'Target directory is not a directory' });
+        }
+      } catch {
+        return res.status(400).json({ error: 'Target directory does not exist' });
+      }
+    }
+    // Defense-in-depth: ensure destPath is still inside targetDir after join
+    const destPath = path.join(targetDir, sanitized);
+    if (
+      !path.resolve(destPath).startsWith(path.resolve(targetDir) + path.sep) &&
+      path.resolve(destPath) !== path.resolve(targetDir)
+    ) {
+      return res.status(400).json({ error: 'Invalid filename' });
+    }
+
+    const chunks = [];
+    let size = 0;
+    let aborted = false;
+    const limit = 10 * 1024 * 1024;
+
+    req.on('data', (chunk) => {
+      if (aborted) return;
+      size += chunk.length;
+      if (size > limit) {
+        aborted = true;
+        log.warn(`File upload rejected: too large (${size} bytes)`);
+        res.status(413).json({ error: 'File too large (max 10 MB)' });
+        req.resume();
+        return;
+      }
+      chunks.push(chunk);
+    });
+
+    req.on('end', () => {
+      if (aborted) return;
+      const buffer = Buffer.concat(chunks);
+      if (!buffer.length) {
+        return res.status(400).json({ error: 'Empty file' });
+      }
+
+      // Atomic write with dedup: use wx flag to fail on existing file, retry with suffix
+      const ext = path.extname(sanitized);
+      const base = path.basename(sanitized, ext);
+      let destPath = path.join(targetDir, sanitized);
+      let written = false;
+      for (let n = 0; n < 100; n++) {
+        const candidate = n === 0 ? destPath : path.join(targetDir, `${base} (${n})${ext}`);
+        try {
+          fs.writeFileSync(candidate, buffer, { flag: 'wx' });
+          destPath = candidate;
+          written = true;
+          break;
+        } catch (err) {
+          if (err.code === 'EEXIST') continue;
+          log.error(`File upload write error: ${err.message}`);
+          return res.status(500).json({ error: 'Failed to write file' });
+        }
+      }
+      if (!written) {
+        return res.status(409).json({ error: 'Too many filename collisions' });
+      }
+      const finalName = path.basename(destPath);
+      log.info(`File upload: ${finalName} → ${targetDir} (${buffer.length} bytes)`);
+      res.json({ name: finalName, path: destPath, size: buffer.length });
+    });
+
+    req.on('error', (err) => {
+      log.error(`File upload error: ${err.message}`);
+      res.status(500).json({ error: 'Upload failed' });
+    });
+  });
+
   // Directory listing for folder browser
   app.get('/api/dirs', apiRateLimit, auth.middleware, (req, res) => {
     const query = req.query.q || config.cwd + path.sep;
