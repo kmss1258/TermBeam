@@ -1,0 +1,5 @@
+[allowlist]
+description = "Allow example/placeholder credentials in documentation"
+paths = [
+  '''docs/troubleshooting\.md''',
+]
