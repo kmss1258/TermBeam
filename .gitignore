@@ -4,6 +4,7 @@ node_modules/
 *.log
 dist/
 coverage/
+test-results/
 junit.xml
 .idea/
 .vscode/
