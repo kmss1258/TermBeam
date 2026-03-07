@@ -87,6 +87,29 @@ function setupRoutes(app, { auth, sessions, config, state }) {
     res.json({ version: getVersion() });
   });
 
+  // Update check API
+  app.get('/api/update-check', apiRateLimit, auth.middleware, async (req, res) => {
+    const { checkForUpdate, detectInstallMethod } = require('./update-check');
+    const force = req.query.force === 'true';
+
+    try {
+      const info = await checkForUpdate({ currentVersion: config.version, force });
+      const installInfo = detectInstallMethod();
+      state.updateInfo = { ...info, ...installInfo };
+      res.json(state.updateInfo);
+    } catch {
+      const installInfo = detectInstallMethod();
+      const fallback = {
+        current: config.version,
+        latest: null,
+        updateAvailable: false,
+        ...installInfo,
+      };
+      state.updateInfo = fallback;
+      res.json(fallback);
+    }
+  });
+
   // Share token auto-login middleware: validates ?ott= param, sets session cookie, redirects to clean URL
   function autoLogin(req, res, next) {
     const { ott } = req.query;
