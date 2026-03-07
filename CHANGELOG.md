@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.11.1] - 2026-03-07
+
+- chore: drop Node.js 18 support (EOL April 2025) (#126)
+- refactor(version): combine dev version into single semver-style string
+- fix(resize): activity-aware PTY sizing, better replay, mobile persistence (#124)
+- fix(version): derive version from git tag when running from source (#125)
+
 ## [1.11.0] - 2026-03-07
 
 - feat: add update notification system
