@@ -19,17 +19,26 @@ function getVersion() {
       stdio: ['pipe', 'pipe', 'pipe'],
     }).trim();
 
-    const tagMatch = gitDesc.match(/^v(\d+\.\d+\.\d+)/);
+    const tagMatch = gitDesc.match(/^v(\d+\.\d+\.\d+)(?:-(\d+)-g([0-9a-f]+))?(-dirty)?$/);
     if (tagMatch) {
       const gitVersion = tagMatch[1];
+      const commits = tagMatch[2];
+      const hash = tagMatch[3];
+      const dirty = tagMatch[4];
+
       // Exactly on a clean tag — return the tag version
-      if (gitDesc === `v${gitVersion}`) return gitVersion;
-      // Ahead of tag or dirty — show dev version derived from the tag
-      return `${gitVersion}-dev (${gitDesc})`;
+      if (!commits && !dirty) return gitVersion;
+
+      // Build a combined semver-style dev string
+      let ver = `${gitVersion}-dev`;
+      if (commits) ver += `.${commits}`;
+      const meta = [hash ? `g${hash}` : null, dirty ? 'dirty' : null].filter(Boolean).join('.');
+      if (meta) ver += `+${meta}`;
+      return ver;
     }
 
     // No semver tag found (e.g. bare commit hash) — fall back to package.json
-    return `${base}-dev (${gitDesc})`;
+    return `${base}-dev+${gitDesc}`;
   } catch {
     return `${base}-dev`;
   }

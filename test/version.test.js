@@ -67,7 +67,7 @@ describe('Version', () => {
     try {
       delete require.cache[require.resolve('../src/version')];
       const { getVersion } = require('../src/version');
-      assert.equal(getVersion(), '2.5.0-dev (v2.5.0-3-gabcdef1)');
+      assert.equal(getVersion(), '2.5.0-dev.3+gabcdef1');
     } finally {
       child_process.execSync = origExecSync;
       delete require.cache[require.resolve('../src/version')];
@@ -85,7 +85,7 @@ describe('Version', () => {
     try {
       delete require.cache[require.resolve('../src/version')];
       const { getVersion } = require('../src/version');
-      assert.equal(getVersion(), '2.5.0-dev (v2.5.0-dirty)');
+      assert.equal(getVersion(), '2.5.0-dev+dirty');
     } finally {
       child_process.execSync = origExecSync;
       delete require.cache[require.resolve('../src/version')];
@@ -104,7 +104,7 @@ describe('Version', () => {
       delete require.cache[require.resolve('../src/version')];
       const { getVersion } = require('../src/version');
       const pkg = require('../package.json');
-      assert.equal(getVersion(), `${pkg.version}-dev (abcdef1)`);
+      assert.equal(getVersion(), `${pkg.version}-dev+abcdef1`);
     } finally {
       child_process.execSync = origExecSync;
       delete require.cache[require.resolve('../src/version')];
