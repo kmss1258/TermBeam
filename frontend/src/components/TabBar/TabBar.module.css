@@ -1,0 +1,190 @@
+.tabBar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 8px;
+  height: 38px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.tabBarInline {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  gap: 2px;
+  padding: 0 4px;
+  height: 100%;
+}
+
+.tabBarInline::-webkit-scrollbar {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .tabBar {
+    display: none;
+  }
+}
+
+@media (pointer: coarse) {
+  .addBtnLabel {
+    display: none;
+  }
+}
+
+.tabScroller {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex: 1;
+  min-width: 0;
+  scrollbar-width: none;
+}
+
+.tabScroller::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: grab;
+  white-space: nowrap;
+  user-select: none;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-dim);
+  transition:
+    background 0.15s,
+    color 0.15s;
+  border-left: 3px solid transparent;
+  flex-shrink: 0;
+  height: 30px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tab:hover {
+  background: var(--border);
+  color: var(--text);
+}
+
+.tabActive {
+  color: var(--text);
+  font-weight: 600;
+  background: var(--bg);
+}
+
+.tabSplit {
+  background: rgba(0, 120, 212, 0.1);
+  color: var(--text);
+}
+
+.colorDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.tabName {
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tabActivity {
+  font-size: 10px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.closeBtn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.tab:hover .closeBtn,
+.tabActive .closeBtn {
+  display: flex;
+}
+
+.closeBtn:hover {
+  color: var(--danger);
+  background: transparent;
+}
+
+.addBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 10px;
+  height: 28px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  white-space: nowrap;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.addBtn:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.statusDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+
+.unreadDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}

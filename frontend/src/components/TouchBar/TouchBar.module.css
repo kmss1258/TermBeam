@@ -1,0 +1,83 @@
+.touchBar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  height: calc(80px + env(safe-area-inset-bottom, 0px));
+  padding: 6px 4px;
+  padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  justify-content: center;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.row {
+  display: flex;
+  gap: 4px;
+  padding: 0 2px;
+}
+
+.keyBtn {
+  min-width: 0;
+  height: 34px;
+  background: var(--key-bg);
+  color: var(--text);
+  border: 1px solid var(--key-border);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 1px 0 var(--key-shadow);
+  -webkit-tap-highlight-color: transparent;
+  font-family: inherit;
+  transition: background 0.08s;
+}
+
+.special {
+  background: var(--key-special-bg);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.modifier {
+  background: var(--key-special-bg);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.modifier.active {
+  background: var(--accent, #0078d4);
+  box-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.2),
+    0 0 10px rgba(0, 120, 212, 0.5);
+}
+
+.iconBtn {
+  font-size: 16px;
+}
+
+.keyEnter {
+  background: var(--accent, #0078d4);
+  color: #fff;
+  font-size: 20px;
+}
+
+.keyDanger {
+  background: #5c2222;
+  color: #f87171;
+}
+
+.flash {
+  background: var(--accent, #0078d4) !important;
+  color: #fff !important;
+}

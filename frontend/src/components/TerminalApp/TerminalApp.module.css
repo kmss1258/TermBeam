@@ -1,0 +1,187 @@
+.layout {
+  --keyboard-height: 0px;
+  position: relative;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* ── Top bar ── */
+.topBar {
+  height: calc(40px + env(safe-area-inset-top, 0px));
+  padding: 0 4px;
+  padding-top: env(safe-area-inset-top, 0px);
+  display: flex;
+  align-items: center;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  gap: 2px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 60;
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.barBtn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  gap: 4px;
+  padding: 0;
+  flex-shrink: 0;
+  transition:
+    background 0.15s,
+    color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.barBtn:hover {
+  background: var(--border);
+  color: var(--text);
+}
+
+.barBtnWithLabel {
+  width: auto;
+  padding: 0 10px;
+  gap: 3px;
+}
+
+.btnLabel {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.stopBtn {
+  color: var(--danger);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.stopBtn:hover {
+  background: var(--danger);
+  color: #fff;
+}
+
+.stopBtn:active {
+  transform: scale(0.9);
+}
+
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--danger);
+  flex-shrink: 0;
+  transition: background 0.3s;
+  display: inline-block;
+}
+
+.statusConnected {
+  background: var(--success);
+}
+
+.sessionName {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+  max-width: 120px;
+}
+
+.statusText {
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.mobileOnly {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .desktopOnly {
+    display: none !important;
+  }
+  .mobileOnly {
+    display: flex !important;
+  }
+  .sessionName {
+    max-width: 30vw;
+  }
+  .statusText {
+    display: none;
+  }
+}
+
+/* ── Terminal area ── */
+.terminalArea {
+  position: absolute;
+  top: calc(40px + env(safe-area-inset-top, 0px));
+  bottom: calc(80px + env(safe-area-inset-bottom, 0px) + var(--keyboard-height, 0px));
+  left: 0;
+  right: 0;
+  display: flex;
+  min-height: 0;
+}
+
+.split {
+  flex-direction: row;
+}
+
+.paneWrapper {
+  flex: 1;
+  display: none;
+  min-height: 0;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.visible {
+  display: flex;
+}
+
+/* Divider between split panes (accent-colored border on second pane) */
+.split .visible + .visible {
+  border-left: 2px solid var(--accent);
+}
+
+/* Mobile: stack panes vertically */
+@media (max-width: 640px) {
+  .split {
+    flex-direction: column;
+  }
+  .split .visible + .visible {
+    border-left: none;
+    border-top: 2px solid var(--accent);
+  }
+}

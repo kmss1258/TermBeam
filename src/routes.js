@@ -7,26 +7,9 @@ const { detectShells } = require('./shells');
 const log = require('./logger');
 const rateLimit = require('express-rate-limit');
 
+const REACT_DIR = path.join(__dirname, '..', 'public-react');
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 const uploadedFiles = new Map(); // id -> filepath
-
-const pageRateLimit = rateLimit({
-  windowMs: 1 * 60 * 1000,
-  max: 120,
-  standardHeaders: true,
-  legacyHeaders: false,
-  handler: (_req, res) =>
-    res.status(429).json({ error: 'Too many requests, please try again later.' }),
-});
-
-const apiRateLimit = rateLimit({
-  windowMs: 1 * 60 * 1000,
-  max: 120,
-  standardHeaders: true,
-  legacyHeaders: false,
-  handler: (_req, res) =>
-    res.status(429).json({ error: 'Too many requests, please try again later.' }),
-});
 
 const IMAGE_SIGNATURES = [
   { type: 'image/png', bytes: [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a] },
@@ -53,7 +36,26 @@ function validateMagicBytes(buffer, contentType) {
 }
 
 function setupRoutes(app, { auth, sessions, config, state }) {
-  // Serve static files (manifest.json, sw.js, icons, etc.)
+  const pageRateLimit = rateLimit({
+    windowMs: 1 * 60 * 1000,
+    max: 120,
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: (_req, res) =>
+      res.status(429).json({ error: 'Too many requests, please try again later.' }),
+  });
+
+  const apiRateLimit = rateLimit({
+    windowMs: 1 * 60 * 1000,
+    max: 120,
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: (_req, res) =>
+      res.status(429).json({ error: 'Too many requests, please try again later.' }),
+  });
+
+  // Serve static files — React build first, then public for shared assets (icons, manifest)
+  app.use(express.static(REACT_DIR, { index: false }));
   app.use(express.static(PUBLIC_DIR, { index: false }));
 
   // Login page
@@ -134,12 +136,12 @@ function setupRoutes(app, { auth, sessions, config, state }) {
     next();
   }
 
-  // Pages
+  // Pages — always serve React SPA
   app.get('/', pageRateLimit, autoLogin, auth.middleware, (_req, res) =>
-    res.sendFile('index.html', { root: PUBLIC_DIR }),
+    res.sendFile('index.html', { root: REACT_DIR }),
   );
   app.get('/terminal', pageRateLimit, autoLogin, auth.middleware, (_req, res) =>
-    res.sendFile('terminal.html', { root: PUBLIC_DIR }),
+    res.sendFile('index.html', { root: REACT_DIR }),
   );
 
   // Share token — generates a temporary share token for the share button
