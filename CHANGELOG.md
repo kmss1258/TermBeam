@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.12.1] - 2026-03-09
+
+- feat(ui): add 18 themes and fix alt-screen reconnection (#130)
+
 ## [1.12.0] - 2026-03-08
 
 - feat(frontend): rewrite frontend in React + TypeScript (#128)
