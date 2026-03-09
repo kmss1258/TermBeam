@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.12.4] - 2026-03-09
+
+- fix(deps): patch serialize-javascript vulnerability (GHSA-5c6j-r48x-rmvq) (#134)
+
 ## [1.12.3] - 2026-03-09
 
 - refactor: reorganize repository file structure (#133)
