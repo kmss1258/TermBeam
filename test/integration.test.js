@@ -12,7 +12,7 @@ const testConfigDir = fs.mkdtempSync(path.join(os.tmpdir(), 'termbeam-test-'));
 process.env.TERMBEAM_CONFIG_DIR = testConfigDir;
 
 const { createTermBeamServer, getLocalIP } = require('../src/server');
-const { removeConnectionConfig } = require('../src/resume');
+const { removeConnectionConfig } = require('../src/cli/resume');
 
 // --- Helpers ---
 
@@ -572,7 +572,7 @@ describe('Integration', () => {
           method: 'GET',
         });
         sessions = JSON.parse(res.data);
-        if (sessions[0]?.git) break;
+        if (sessions[0]?.git?.branch) break;
       }
 
       assert.ok(sessions.length >= 1, 'Should have at least one session');
@@ -786,12 +786,12 @@ describe('Integration', () => {
     after(() => {
       inst?.shutdown();
       // Clean up connection config
-      const { removeConnectionConfig } = require('../src/resume');
+      const { removeConnectionConfig } = require('../src/cli/resume');
       removeConnectionConfig();
     });
 
     it('should write connection.json on server start and clean up on shutdown', async () => {
-      const { readConnectionConfig, removeConnectionConfig } = require('../src/resume');
+      const { readConnectionConfig, removeConnectionConfig } = require('../src/cli/resume');
 
       // Ensure clean state
       removeConnectionConfig();
