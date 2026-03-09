@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.12.3] - 2026-03-09
+
+- refactor: reorganize repository file structure (#133)
+
 ## [1.12.2] - 2026-03-09
 
 - docs: fix inaccuracies across README, docs, and landing page
