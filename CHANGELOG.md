@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.12.2] - 2026-03-09
+
+- docs: fix inaccuracies across README, docs, and landing page
+- feat(ui): seamless background reconnect and smart notifications (#132)
+
 ## [1.12.1] - 2026-03-09
 
 - feat(ui): add 18 themes and fix alt-screen reconnection (#130)
