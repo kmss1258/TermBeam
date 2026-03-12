@@ -1,10 +1,16 @@
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useUIStore } from '@/stores/uiStore';
 import { useMobileKeyboard } from '@/hooks/useMobileKeyboard';
 import { uploadImage } from '@/services/api';
 import styles from './TouchBar.module.css';
+
+const SpeechRecognitionAPI =
+  typeof window !== 'undefined'
+    ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)
+    : null;
 
 type KeyType = 'special' | 'modifier' | 'icon' | 'enter' | 'danger';
 
@@ -92,10 +98,69 @@ export default function TouchBar() {
   const setCtrlActive = useUIStore((s) => s.setTouchCtrl);
   const setShiftActive = useUIStore((s) => s.setTouchShift);
   const [flashKey, setFlashKey] = React.useState<string | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const recognitionRef = useRef<InstanceType<typeof SpeechRecognitionAPI> | null>(null);
   const repeatTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const repeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const { keyboardOpen, keyboardHeight } = useMobileKeyboard();
+
+  const toggleMic = useCallback(() => {
+    if (isRecording) {
+      recognitionRef.current?.stop();
+      return;
+    }
+
+    if (!SpeechRecognitionAPI) {
+      toast.error('Speech recognition not supported');
+      return;
+    }
+
+    const recognition = new SpeechRecognitionAPI();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = navigator.language || 'en-US';
+
+    recognition.onresult = (event: { results: SpeechRecognitionResultList }) => {
+      const last = event.results[event.results.length - 1];
+      if (last?.isFinal) {
+        const transcript = last[0]?.transcript;
+        if (transcript) {
+          sendInput(transcript);
+          refocusTerminal();
+        }
+      }
+    };
+
+    recognition.onerror = (event: { error: string }) => {
+      if (event.error === 'not-allowed') {
+        toast.error('Microphone permission denied');
+      } else if (event.error !== 'aborted' && event.error !== 'no-speech') {
+        toast.error(`Speech error: ${event.error}`);
+      }
+      setIsRecording(false);
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+      recognitionRef.current = null;
+    };
+
+    try {
+      recognition.start();
+      recognitionRef.current = recognition;
+      setIsRecording(true);
+    } catch {
+      toast.error('Failed to start speech recognition');
+      setIsRecording(false);
+    }
+  }, [isRecording]);
+
+  useEffect(() => {
+    return () => {
+      recognitionRef.current?.abort();
+    };
+  }, []);
 
   const clearRepeat = useCallback(() => {
     if (repeatTimerRef.current) {
@@ -352,7 +417,18 @@ export default function TouchBar() {
   return (
     <div className={styles.touchBar} style={touchBarStyle}>
       <div className={styles.row}>{ROW1.map(renderKey)}</div>
-      <div className={styles.row}>{ROW2.map(renderKey)}</div>
+      <div className={styles.row}>
+        {ROW2.map(renderKey)}
+        {SpeechRecognitionAPI && (
+          <button
+            className={`${styles.keyBtn} ${styles.special} ${isRecording ? styles.recording : ''}`}
+            data-testid="mic-btn"
+            onClick={toggleMic}
+          >
+            {isRecording ? '⏹' : '🎤'}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

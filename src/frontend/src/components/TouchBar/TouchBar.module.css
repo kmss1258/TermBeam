@@ -83,6 +83,22 @@
   color: #fff !important;
 }
 
+.recording {
+  background: #dc2626 !important;
+  color: #fff !important;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
 /* Landscape on short screens: single compact row */
 @media (orientation: landscape) and (max-height: 500px) {
   .touchBar {

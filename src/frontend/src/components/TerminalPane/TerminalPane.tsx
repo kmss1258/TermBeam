@@ -38,13 +38,10 @@ export function TerminalPane({ sessionId, active, visible, fontSize = 14 }: Term
 
   const handleData = useCallback((data: string) => {
     // Apply touch bar Ctrl modifier to virtual keyboard input.
-    // When Ctrl is toggled on, convert single printable characters to
-    // their control-character equivalents (e.g. 'o' → Ctrl+O = 0x0f).
     const { touchCtrlActive, setTouchCtrl } = useUIStore.getState();
     if (touchCtrlActive && data.length === 1) {
       const code = data.toLowerCase().charCodeAt(0);
       if (code >= 0x61 && code <= 0x7a) {
-        // a-z → 0x01-0x1a
         sendRef.current(String.fromCharCode(code - 0x60));
         setTouchCtrl(false);
         return;
