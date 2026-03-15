@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.13.1] - 2026-03-15
+
+- fix(security): resolve flatted DoS vulnerability and update publish skill
+- feat(logging): add comprehensive logging across all server and CLI modules (#142)
+
 ## [1.13.0] - 2026-03-12
 
 - fix(frontend): add safe-area-inset-top to SessionsHub for PWA mode
