@@ -30,6 +30,19 @@ npm run lint
 
 Must exit cleanly. If it fails, stop and report.
 
+## Step 2.5 — Security audit
+
+```bash
+npm audit --audit-level=moderate
+```
+
+Must exit cleanly (0 vulnerabilities at moderate or higher). If it fails:
+
+1. Try `npm audit fix` to resolve automatically.
+2. If that fixes it, continue (the lockfile change will be committed in Step 5).
+3. If vulnerabilities remain after `npm audit fix`, report them to the user
+   and stop — do NOT publish with known security vulnerabilities.
+
 ## Step 3 — Run coverage check
 
 ```bash
@@ -172,11 +185,12 @@ If there are multiple types of changes, use the most significant one.
 
      Then continue to Step 6 (CI on `main`).
 
-## Step 6 — Wait for CI to pass (ALL jobs, including E2E)
+## Step 6 — Wait for CI AND Security to pass (ALL jobs, including E2E)
 
-**CRITICAL: Do NOT proceed to the release step until every CI job has
-completed successfully — this includes unit tests, coverage, lint, AND
-all E2E jobs (ubuntu, windows, macos).** A run showing `conclusion: success`
+**CRITICAL: Do NOT proceed to the release step until every CI job AND the
+Security workflow have completed successfully — this includes unit tests,
+coverage, lint, all E2E jobs (ubuntu, windows, macos), AND all security
+jobs (npm audit, Trivy, Gitleaks).** A run showing `conclusion: success`
 at the top level means all jobs passed; if any job is still `in_progress`,
 keep waiting.
 
@@ -187,21 +201,27 @@ until they complete:
 # Get the latest CI run on main
 gh run list --workflow=ci.yml --branch=main --limit=1 --json databaseId,status,conclusion
 
-# Watch it until it completes (timeout after 10 minutes)
-gh run watch <run-id> --exit-status
+# Get the latest Security run on main
+gh run list --workflow=security.yml --branch=main --limit=1 --json databaseId,status,conclusion
+
+# Watch both until they complete (timeout after 10 minutes)
+gh run watch <ci-run-id> --exit-status
+gh run watch <security-run-id> --exit-status
 ```
 
-After the run completes, **verify every job passed** — especially E2E:
+After the runs complete, **verify every job passed** — especially E2E and Security:
 
 ```bash
-gh run view <run-id> --json conclusion,jobs \
+gh run view <ci-run-id> --json conclusion,jobs \
+  --jq '{conclusion, jobs: [.jobs[] | {name, conclusion}]}'
+gh run view <security-run-id> --json conclusion,jobs \
   --jq '{conclusion, jobs: [.jobs[] | {name, conclusion}]}'
 ```
 
 All jobs must show `conclusion: "success"`. If any job failed or was
 cancelled, do NOT proceed.
 
-If CI fails:
+If CI or Security fails:
 
 1. Fetch the failed job logs: `gh run view <run-id> --log-failed`
 2. Report the failure to the user with the relevant error output.
