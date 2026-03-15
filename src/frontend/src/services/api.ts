@@ -1,6 +1,20 @@
 import type { Session, CreateSessionRequest } from '@/types';
 
 const BASE = '';
+const DEFAULT_TIMEOUT = 10_000;
+
+/** Fetch with an AbortController timeout to avoid hanging on stale tunnels. */
+function fetchWithTimeout(
+  url: string,
+  options?: RequestInit & { timeout?: number },
+): Promise<Response> {
+  const { timeout = DEFAULT_TIMEOUT, ...fetchOptions } = options || {};
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
+  return fetch(url, { ...fetchOptions, signal: controller.signal }).finally(() =>
+    clearTimeout(timer),
+  );
+}
 
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
@@ -11,14 +25,14 @@ async function handleResponse<T>(res: Response): Promise<T> {
 }
 
 export async function fetchSessions(): Promise<Session[]> {
-  const res = await fetch(`${BASE}/api/sessions`, { credentials: 'same-origin' });
+  const res = await fetchWithTimeout(`${BASE}/api/sessions`, { credentials: 'same-origin' });
   return handleResponse<Session[]>(res);
 }
 
 export async function createSession(
   req: CreateSessionRequest & { cols?: number; rows?: number },
 ): Promise<{ id: string; url: string }> {
-  const res = await fetch(`${BASE}/api/sessions`, {
+  const res = await fetchWithTimeout(`${BASE}/api/sessions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(req),
@@ -28,7 +42,7 @@ export async function createSession(
 }
 
 export async function deleteSession(id: string): Promise<void> {
-  const res = await fetch(`${BASE}/api/sessions/${id}`, {
+  const res = await fetchWithTimeout(`${BASE}/api/sessions/${id}`, {
     method: 'DELETE',
     credentials: 'same-origin',
   });
@@ -39,7 +53,7 @@ export async function deleteSession(id: string): Promise<void> {
 }
 
 export async function renameSession(id: string, name: string): Promise<void> {
-  const res = await fetch(`${BASE}/api/sessions/${id}`, {
+  const res = await fetchWithTimeout(`${BASE}/api/sessions/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name }),
@@ -68,7 +82,7 @@ export async function fetchShells(): Promise<{
   defaultShell: string;
   cwd: string;
 }> {
-  const res = await fetch(`${BASE}/api/shells`, { credentials: 'same-origin' });
+  const res = await fetchWithTimeout(`${BASE}/api/shells`, { credentials: 'same-origin' });
   const data = await handleResponse<ShellsResponse>(res);
   return { shells: data.shells, defaultShell: data.default, cwd: data.cwd };
 }
@@ -81,7 +95,7 @@ export interface BrowseDirsResponse {
 export async function browseDirectory(dir: string): Promise<BrowseDirsResponse> {
   // Trailing slash tells backend to list contents (not prefix-filter)
   const q = dir.endsWith('/') || dir.endsWith('\\') ? dir : dir + '/';
-  const res = await fetch(`${BASE}/api/dirs?q=${encodeURIComponent(q)}`, {
+  const res = await fetchWithTimeout(`${BASE}/api/dirs?q=${encodeURIComponent(q)}`, {
     credentials: 'same-origin',
   });
   return handleResponse<BrowseDirsResponse>(res);
@@ -149,19 +163,26 @@ export function uploadImage(
   return xhrUpload(`${BASE}/api/upload`, blob, { 'Content-Type': contentType }, onProgress);
 }
 
-export async function checkAuth(): Promise<{ authenticated: boolean }> {
+export async function checkAuth(): Promise<{
+  authenticated: boolean;
+  serverReachable: boolean;
+}> {
   try {
-    const res = await fetch(`${BASE}/api/sessions`, { credentials: 'same-origin' });
-    if (res.status === 401) return { authenticated: false };
-    if (res.status === 429) return { authenticated: false };
-    return { authenticated: true };
+    const res = await fetchWithTimeout(`${BASE}/api/sessions`, { credentials: 'same-origin' });
+    if (res.status === 401) return { authenticated: false, serverReachable: true };
+    if (res.status === 429) return { authenticated: false, serverReachable: true };
+    // Validate response is JSON — DevTunnel auth expiry can return 200 with HTML
+    const ct = res.headers.get('content-type') || '';
+    if (!ct.includes('application/json'))
+      return { authenticated: false, serverReachable: false };
+    return { authenticated: true, serverReachable: true };
   } catch {
-    return { authenticated: false };
+    return { authenticated: false, serverReachable: false };
   }
 }
 
 export async function login(password: string): Promise<{ ok: boolean }> {
-  const res = await fetch(`${BASE}/api/auth`, {
+  const res = await fetchWithTimeout(`${BASE}/api/auth`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ password }),
@@ -184,7 +205,7 @@ export async function checkUpdate(force = false): Promise<{
   latest: string;
 } | null> {
   try {
-    const res = await fetch(`${BASE}/api/update-check${force ? '?force=true' : ''}`, {
+    const res = await fetchWithTimeout(`${BASE}/api/update-check${force ? '?force=true' : ''}`, {
       credentials: 'same-origin',
     });
     if (!res.ok) return null;
@@ -210,7 +231,7 @@ export function getWebSocketUrl(): string {
 }
 
 export function getShareUrl(): Promise<string> {
-  return fetch(`${BASE}/api/share-token`, { credentials: 'same-origin' })
+  return fetchWithTimeout(`${BASE}/api/share-token`, { credentials: 'same-origin' })
     .then((res) => (res.ok ? res.json() : null))
     .then((data) => {
       if (!data?.url) return window.location.href;

@@ -84,6 +84,7 @@ function createTermBeamServer(overrides = {}) {
   function shutdown() {
     if (shuttingDown) return;
     shuttingDown = true;
+    log.info('Shutdown initiated');
     auth.cleanup();
     sessions.shutdown();
     cleanupUploadedFiles();
@@ -231,6 +232,7 @@ function createTermBeamServer(overrides = {}) {
             publicUrl = tunnel.url;
             state.shareBaseUrl = publicUrl;
           } else {
+            log.warn('Tunnel failed to start, falling back to LAN-only');
             console.log('  ⚠️  Tunnel failed to start. Using LAN only.');
           }
         }
@@ -322,18 +324,22 @@ module.exports = { createTermBeamServer, getLocalIP };
 // Auto-start when run directly (e.g. `node src/server.js`)
 if (require.main === module) {
   const instance = createTermBeamServer();
+  const log = require('../utils/logger');
 
   process.on('SIGINT', () => {
+    log.info('Received SIGINT signal');
     console.log('\n[termbeam] Shutting down...');
     instance.shutdown();
     setTimeout(() => process.exit(0), 500).unref();
   });
   process.on('SIGTERM', () => {
+    log.info('Received SIGTERM signal');
     console.log('\n[termbeam] Shutting down...');
     instance.shutdown();
     setTimeout(() => process.exit(0), 500).unref();
   });
   process.on('uncaughtException', (err) => {
+    log.error(`Uncaught exception: ${err.message}`);
     console.error('[termbeam] Uncaught exception:', err.message);
     cleanupTunnel();
     process.exit(1);

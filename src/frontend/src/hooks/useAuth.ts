@@ -47,8 +47,16 @@ export function useAuth(): UseAuthReturn {
       }
 
       try {
-        const { authenticated: isAuth } = await checkAuth();
-        if (!cancelled) setAuthenticated(isAuth);
+        const { authenticated: isAuth, serverReachable } = await checkAuth();
+        if (!cancelled) {
+          if (!isAuth && !serverReachable) {
+            // Server unreachable — show login page so user sees something
+            // (a full reload could loop if the server is genuinely down)
+            setAuthenticated(false);
+            return;
+          }
+          setAuthenticated(isAuth);
+        }
       } catch {
         if (!cancelled) setAuthenticated(false);
       }
@@ -59,6 +67,19 @@ export function useAuth(): UseAuthReturn {
       cancelled = true;
     };
   }, []);
+
+  // Re-check auth when returning from background (e.g. mobile tab switch after hours idle).
+  // Catches expired tokens / stale DevTunnel sessions that would otherwise show a white screen.
+  useEffect(() => {
+    function handleVisibility() {
+      if (document.hidden || authenticated !== true) return;
+      checkAuth().then(({ authenticated: isAuth }) => {
+        if (!isAuth) setAuthenticated(false);
+      });
+    }
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [authenticated]);
 
   const login = useCallback(async (password: string): Promise<boolean> => {
     setLoading(true);
