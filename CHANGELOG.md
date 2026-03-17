@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.13.2] - 2026-03-17
+
+- fix(service): boot persistence and SW auth reliability
+
 ## [1.13.2] - 2026-03-16
 
 - fix(auth): prevent white page in no-password mode after idle
