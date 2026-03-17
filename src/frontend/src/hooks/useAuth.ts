@@ -48,10 +48,11 @@ export function useAuth(): UseAuthReturn {
       }
 
       // Primary check: can we reach the server and are we authenticated?
-      const { authenticated: isAuth, serverReachable } = await checkAuth();
+      const { authenticated: isAuth, serverReachable, tunnelAuthRequired } = await checkAuth();
       if (cancelled) return;
 
       if (isAuth) {
+        sessionStorage.removeItem('termbeam-tunnel-reload');
         setAuthenticated(true);
         return;
       }
@@ -64,6 +65,22 @@ export function useAuth(): UseAuthReturn {
         setPasswordRequired(true);
         setAuthenticated(false);
         return;
+      }
+
+      // A proxy/tunnel (e.g. DevTunnel) intercepted the request with an auth page.
+      // Reload the page so the browser handles the auth redirect interactively
+      // (fetch can't show interactive login pages — only navigation can).
+      // Guard with sessionStorage to prevent infinite reload loops (30s cooldown).
+      if (tunnelAuthRequired) {
+        const RELOAD_KEY = 'termbeam-tunnel-reload';
+        const lastReload = parseInt(sessionStorage.getItem(RELOAD_KEY) || '0', 10);
+        if (Date.now() - lastReload > 30_000) {
+          sessionStorage.setItem(RELOAD_KEY, String(Date.now()));
+          window.location.reload();
+          return;
+        }
+        // Already reloaded recently — fall through to show login as fallback
+        sessionStorage.removeItem(RELOAD_KEY);
       }
 
       // Server unreachable — check if password is configured.

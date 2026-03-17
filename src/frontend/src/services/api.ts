@@ -166,18 +166,26 @@ export function uploadImage(
 export async function checkAuth(): Promise<{
   authenticated: boolean;
   serverReachable: boolean;
+  tunnelAuthRequired: boolean;
 }> {
   try {
     const res = await fetchWithTimeout(`${BASE}/api/sessions`, { credentials: 'same-origin' });
-    if (res.status === 401) return { authenticated: false, serverReachable: true };
-    if (res.status === 429) return { authenticated: false, serverReachable: true };
+    if (res.status === 401)
+      return { authenticated: false, serverReachable: true, tunnelAuthRequired: false };
+    if (res.status === 429)
+      return { authenticated: false, serverReachable: true, tunnelAuthRequired: false };
     // Validate response is JSON — DevTunnel auth expiry can return 200 with HTML
     const ct = res.headers.get('content-type') || '';
-    if (!ct.includes('application/json'))
-      return { authenticated: false, serverReachable: false };
-    return { authenticated: true, serverReachable: true };
+    if (!ct.includes('application/json')) {
+      // Got a response, but it's not JSON — a proxy/tunnel (e.g. DevTunnel) is
+      // intercepting requests with its own auth page. A page reload (full browser
+      // navigation) is needed so the browser can handle the auth redirect interactively.
+      return { authenticated: false, serverReachable: false, tunnelAuthRequired: true };
+    }
+    return { authenticated: true, serverReachable: true, tunnelAuthRequired: false };
   } catch {
-    return { authenticated: false, serverReachable: false };
+    // Network error — server truly unreachable (offline, DNS failure, etc.)
+    return { authenticated: false, serverReachable: false, tunnelAuthRequired: false };
   }
 }
 
