@@ -349,6 +349,17 @@ describe('Integration', () => {
       assert.strictEqual(res.headers['referrer-policy'], 'no-referrer');
       assert.strictEqual(res.headers['cache-control'], 'no-store');
     });
+
+    it('PWA assets should have cacheable headers for Safari iOS', async () => {
+      if (!inst) inst = await startServer();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: '/manifest.webmanifest',
+        method: 'GET',
+      });
+      assert.strictEqual(res.headers['cache-control'], 'public, max-age=86400');
+    });
   });
 
   describe('Rate limiting on login', () => {

@@ -63,7 +63,10 @@ function createTermBeamServer(overrides = {}) {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('Referrer-Policy', 'no-referrer');
-    res.setHeader('Cache-Control', 'no-store');
+    // PWA assets (icons, manifest) must be cacheable for Safari iOS home screen icons.
+    // Safari skips apple-touch-icon entirely when Cache-Control: no-store is set.
+    const isPwaAsset = req.path.startsWith('/icons/') || req.path === '/manifest.webmanifest';
+    res.setHeader('Cache-Control', isPwaAsset ? 'public, max-age=86400' : 'no-store');
     res.setHeader(
       'Content-Security-Policy',
       "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data:; connect-src 'self' ws: wss: https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net",
