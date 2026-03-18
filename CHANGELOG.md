@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.14.1] - 2026-03-18
+
+- fix(wsl): prevent hang on devtunnel device code login and improve node-pty error
+
 ## [1.14.0] - 2026-03-18
 
 - feat(cli): add --json flag to termbeam list command
