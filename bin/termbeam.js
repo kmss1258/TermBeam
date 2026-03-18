@@ -16,7 +16,8 @@ if (subcommand === 'service') {
   });
 } else if (subcommand === 'list') {
   const { list } = require('../src/cli/resume');
-  list().catch((err) => {
+  const listArgs = process.argv.slice(3);
+  list({ json: listArgs.includes('--json') }).catch((err) => {
     console.error(err.message);
     process.exit(1);
   });

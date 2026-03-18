@@ -72,10 +72,16 @@ Lists all active sessions on a running TermBeam server in a formatted table.
 ### Usage
 
 ```
-termbeam list
+termbeam list [--json]
 ```
 
 Connection details are read automatically from `~/.termbeam/connection.json`.
+
+### Options
+
+| Flag     | Description                         |
+| -------- | ----------------------------------- |
+| `--json` | Output session data as a JSON array |
 
 ### Output
 
@@ -86,6 +92,18 @@ Connection details are read automatically from `~/.termbeam/connection.json`.
   my-project    a1b2c3d4  /home/user/project     2h 15m   1
   api-server    e5f6a7b8  /home/user/api         45m      0
   scratch       c9d0e1f2  /tmp                   5m       2
+
+  Tip: use --json for machine-readable output
+```
+
+With `--json`, outputs a JSON array suitable for scripting:
+
+```bash
+termbeam list --json
+# [{"id":"a1b2c3d4...","name":"my-project","cwd":"/home/user/project","createdAt":"2026-03-18T00:00:00Z","clients":1,...}]
+
+# Pipe to jq for pretty-printing
+termbeam list --json | jq .
 ```
 
 ## Zero-Config Discovery

@@ -194,6 +194,8 @@ jobs (npm audit, Trivy, Gitleaks).** A run showing `conclusion: success`
 at the top level means all jobs passed; if any job is still `in_progress`,
 keep waiting.
 
+note that windows runs maybe flaky and occasionally require a re-run. If the windows job takes more than 3 minutes, just cancel it and try again.
+
 Use the GitHub CLI to find the workflow runs triggered by the push and poll
 until they complete:
 

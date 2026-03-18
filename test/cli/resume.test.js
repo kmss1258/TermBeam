@@ -1003,6 +1003,138 @@ describe('resume', () => {
         await new Promise((resolve) => badServer.close(resolve));
       });
     });
+
+    describe('list() --json', () => {
+      function findJsonOutput(logs) {
+        for (const line of logs) {
+          try {
+            const parsed = JSON.parse(line);
+            if (Array.isArray(parsed)) return parsed;
+          } catch {
+            // not JSON
+          }
+        }
+        return null;
+      }
+
+      it('should output sessions as JSON array', async () => {
+        const sessions = [
+          {
+            id: 'abcd1234abcd1234',
+            name: 'project1',
+            cwd: '/home/user',
+            createdAt: new Date().toISOString(),
+            clients: 2,
+          },
+          {
+            id: 'efgh5678efgh5678',
+            name: 'dev',
+            cwd: '/tmp',
+            createdAt: new Date(Date.now() - 3600000).toISOString(),
+            clients: 0,
+          },
+        ];
+        mockHandler = (req, res) => {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(sessions));
+        };
+
+        resume.writeConnectionConfig({ port: serverPort, host: 'localhost', password: null });
+        reloadResume();
+
+        const logs = [];
+        const origLog = console.log;
+        console.log = (...args) => logs.push(args.join(' '));
+        try {
+          await resume.list({ json: true });
+        } finally {
+          console.log = origLog;
+        }
+
+        const parsed = findJsonOutput(logs);
+        assert.ok(parsed, 'Expected JSON array output');
+        assert.equal(parsed.length, 2);
+        assert.equal(parsed[0].name, 'project1');
+        assert.equal(parsed[1].name, 'dev');
+      });
+
+      it('should output empty JSON array when no sessions', async () => {
+        mockHandler = (req, res) => {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end('[]');
+        };
+
+        resume.writeConnectionConfig({ port: serverPort, host: 'localhost', password: null });
+        reloadResume();
+
+        const logs = [];
+        const origLog = console.log;
+        console.log = (...args) => logs.push(args.join(' '));
+        try {
+          await resume.list({ json: true });
+        } finally {
+          console.log = origLog;
+        }
+
+        const parsed = findJsonOutput(logs);
+        assert.ok(parsed, 'Expected JSON array output');
+        assert.deepEqual(parsed, []);
+      });
+
+      it('should output empty JSON array on ECONNREFUSED', async () => {
+        resume.writeConnectionConfig({ port: 19997, host: 'localhost', password: null });
+        reloadResume();
+
+        const logs = [];
+        const origLog = console.log;
+        console.log = (...args) => logs.push(args.join(' '));
+        try {
+          await resume.list({ json: true });
+        } finally {
+          console.log = origLog;
+        }
+
+        const parsed = findJsonOutput(logs);
+        assert.ok(parsed, 'Expected JSON array output');
+        assert.deepEqual(parsed, []);
+      });
+
+      it('should output valid parseable JSON with all session fields', async () => {
+        const sessions = [
+          {
+            id: 'abc123abc123abc1',
+            name: 'test-session',
+            cwd: '/workspace',
+            createdAt: '2026-03-18T00:00:00Z',
+            clients: 3,
+            shell: '/bin/bash',
+            pid: 12345,
+          },
+        ];
+        mockHandler = (req, res) => {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(sessions));
+        };
+
+        resume.writeConnectionConfig({ port: serverPort, host: 'localhost', password: null });
+        reloadResume();
+
+        const logs = [];
+        const origLog = console.log;
+        console.log = (...args) => logs.push(args.join(' '));
+        try {
+          await resume.list({ json: true });
+        } finally {
+          console.log = origLog;
+        }
+
+        const parsed = findJsonOutput(logs);
+        assert.ok(parsed, 'Expected JSON array output');
+        assert.equal(parsed[0].id, 'abc123abc123abc1');
+        assert.equal(parsed[0].shell, '/bin/bash');
+        assert.equal(parsed[0].pid, 12345);
+      });
+    });
   });
 
   // ── formatUptime (tested indirectly via internal function) ────────────────

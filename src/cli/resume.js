@@ -315,8 +315,8 @@ async function resume(args) {
   }
 }
 
-async function list() {
-  log.info('Listing sessions');
+async function list(options = {}) {
+  if (!options.json) log.info('Listing sessions');
   const saved = readConnectionConfig();
   const host = (saved && saved.host) || 'localhost';
   const port = (saved && saved.port) || 3456;
@@ -345,12 +345,21 @@ async function list() {
         process.exit(1);
       }
     } else if (err.code === 'ECONNREFUSED') {
+      if (options.json) {
+        console.log('[]');
+        return;
+      }
       console.log(dim('  No TermBeam server is running.'));
       return;
     } else {
       console.error(red(`  Connection failed: ${err.message}`));
       process.exit(1);
     }
+  }
+
+  if (options.json) {
+    console.log(JSON.stringify(sessions));
+    return;
   }
 
   if (sessions.length === 0) {
@@ -380,6 +389,8 @@ async function list() {
       `  ${bold(s.name.padEnd(nameW))}  ${dim(shortId(s.id).padEnd(8))}  ${s.cwd.padEnd(cwdW)}  ${uptime.padEnd(8)}  ${s.clients}`,
     );
   }
+  console.log('');
+  console.log(dim('  Tip: use --json for machine-readable output'));
   console.log('');
 }
 
