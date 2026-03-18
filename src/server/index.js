@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 const os = require('os');
 const path = require('path');
+const readline = require('readline');
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const http = require('http');
@@ -17,6 +18,7 @@ const { createPreviewProxy } = require('./preview');
 const { writeConnectionConfig, removeConnectionConfig } = require('../cli/resume');
 const { checkForUpdate, detectInstallMethod } = require('../utils/update-check');
 
+// --- Helpers ---
 function getLocalIP() {
   const interfaces = os.networkInterfaces();
   for (const name of Object.keys(interfaces)) {
@@ -25,6 +27,16 @@ function getLocalIP() {
     }
   }
   return '127.0.0.1';
+}
+
+function confirmPublicTunnel() {
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  return new Promise((resolve) => {
+    rl.question('  Do you want to continue with public access? (y/N): ', (answer) => {
+      rl.close();
+      resolve(answer.trim().toLowerCase() === 'y');
+    });
+  });
 }
 
 /**
@@ -128,13 +140,26 @@ function createTermBeamServer(overrides = {}) {
       }
     }
 
-    // Warn about private tunnel access when --private flag is used
-    if (config.useTunnel && config.privateTunnel) {
+    // Warn and require consent for public tunnel access
+    if (config.useTunnel && config.publicTunnel) {
+      const rd = '\x1b[31m';
       const yl = '\x1b[33m';
       const rs = '\x1b[0m';
+      const bd = '\x1b[1m';
       console.log('');
-      console.log(`  ${yl}ℹ️  Private tunnel: Microsoft login required to access the tunnel.${rs}`);
+      console.log(`  ${rd}${bd}⚠️  DANGER: Public tunnel access requested${rs}`);
       console.log('');
+      console.log(`  ${yl}This will make your terminal accessible to ANYONE with the URL.${rs}`);
+      console.log(`  ${yl}No Microsoft login will be required to reach the tunnel.${rs}`);
+      console.log(`  ${yl}Only the TermBeam password will protect your terminal.${rs}`);
+      console.log('');
+      const confirmed = await confirmPublicTunnel();
+      if (!confirmed) {
+        console.log('');
+        console.log('  Aborted. Restart without --public for private access.');
+        console.log('');
+        process.exit(1);
+      }
     }
 
     return new Promise((resolve) => {
@@ -204,7 +229,7 @@ function createTermBeamServer(overrides = {}) {
         if (config.useTunnel) {
           const tunnel = await startTunnel(actualPort, {
             persisted: config.persistedTunnel,
-            private: config.privateTunnel,
+            anonymous: config.publicTunnel,
           });
           if (tunnel) {
             publicUrl = tunnel.url;

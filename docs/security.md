@@ -19,30 +19,29 @@ TermBeam has three access layers that combine to determine your risk profile:
 
 | Mode                          | Command                                    | Who Can Connect                       | Auth                              | Risk      |
 | ----------------------------- | ------------------------------------------ | ------------------------------------- | --------------------------------- | --------- |
-| **Default (public tunnel)**   | `termbeam`                                 | Anyone with the URL + password        | Auto-password                     | ✅ Low    |
-| **Private tunnel**            | `termbeam --private`                       | Only you (Microsoft login + password) | Auto-password + tunnel owner auth | ✅ Low    |
+| **Default (private tunnel)**  | `termbeam`                                 | Only you (Microsoft login + password) | Auto-password + tunnel owner auth | ✅ Low    |
+| **Public tunnel**             | `termbeam --public`                        | Anyone with the URL + password        | Auto-password                     | ⚠️ Medium |
 | **LAN-only (localhost)**      | `termbeam --no-tunnel`                     | Local machine only                    | Auto-password                     | ✅ Low    |
 | **LAN-only (all interfaces)** | `termbeam --no-tunnel --lan`               | Any device on your network            | Auto-password                     | ⚠️ Medium |
 | **Localhost, no password**    | `termbeam --no-tunnel --no-password`       | Local processes only                  | None                              | ⚠️ Medium |
 | **LAN, no password**          | `termbeam --no-tunnel --no-password --lan` | Anyone on your network                | None                              | 🔴 High   |
 
 <!-- prettier-ignore -->
-!!! warning "Tunnel + `--no-password` is blocked"
-    The CLI refuses to start with a tunnel and no password.
+!!! warning "`--public --no-password` is blocked"
+    The CLI refuses to start with a public tunnel and no password.
 
-### Public Tunnel (Default)
+### Private Tunnel (Default)
 
-The default mode creates an ephemeral [Azure DevTunnel](https://learn.microsoft.com/en-us/azure/developer/dev-tunnels/) with public access. Anyone with the URL can reach the login page — TermBeam's password auth is the security layer:
+The default mode creates an ephemeral [Azure DevTunnel](https://learn.microsoft.com/en-us/azure/developer/dev-tunnels/) that requires **two layers of authentication**:
 
-1. **TermBeam password** — auto-generated on each run
-2. **HTTPS** — the tunnel URL is encrypted end-to-end
-3. **Unguessable URL** — the tunnel ID is random
+1. **Microsoft account login** — only the tunnel owner can access the URL
+2. **TermBeam password** — auto-generated on each run
 
-The DevTunnel AAD auth layer was removed as the default because it was redundant with TermBeam's own password auth and broke PWA icon display (browsers fetch icons without auth cookies).
+This is the safest way to access your terminal remotely. The tunnel URL is HTTPS, the connection is encrypted end-to-end, and the URL is unguessable.
 
-### Private Tunnel
+### Public Tunnel
 
-With `--private`, the tunnel adds Microsoft account login on top of the TermBeam password — only the tunnel owner can access the URL. This provides two layers of authentication but breaks PWA features (icons, manifest) since browsers fetch those resources without auth cookies.
+With `--public`, the tunnel URL is accessible to anyone who has it — no Microsoft login required. Password authentication is still enforced. This mode is useful for sharing temporary access, but the terminal is internet-accessible and protected only by the password and rate limiting (5 attempts/min/IP).
 
 ### LAN Exposure
 
@@ -54,7 +53,7 @@ Out of the box, TermBeam is configured conservatively:
 
 - ✅ **Password auto-generated** — a strong random password is created on every run
 - ✅ **Localhost bind** — server listens on `127.0.0.1` only
-- ✅ **Public tunnel with password** — tunnel is public but password-protected; use `--private` to add Microsoft login
+- ✅ **Private tunnel** — tunnel requires Microsoft account login (owner-only)
 - ✅ **Ephemeral tunnel** — tunnel URL is deleted when TermBeam exits
 - ✅ **Security headers** — X-Frame-Options, CSP, no-store, nosniff on all responses
 - ✅ **Rate-limited login** — 5 attempts per minute per IP
@@ -66,19 +65,19 @@ Out of the box, TermBeam is configured conservatively:
 
 The following flags increase your attack surface. Use them only when you understand the trade-offs.
 
-| Flag                       | Effect                                            | When Acceptable                                  |
-| -------------------------- | ------------------------------------------------- | ------------------------------------------------ |
-| `--private`                | Adds Microsoft login to tunnel (breaks PWA icons) | Extra auth layer when PWA features aren't needed |
-| `--no-password`            | Removes password auth                             | Localhost-only on a single-user machine          |
-| `--lan` / `--host 0.0.0.0` | Binds to all interfaces                           | Trusted home network with password enabled       |
-| `--lan --no-password`      | LAN-accessible, no auth                           | **Not recommended**                              |
+| Flag                       | Effect                              | When Acceptable                                                   |
+| -------------------------- | ----------------------------------- | ----------------------------------------------------------------- |
+| `--public`                 | Removes Microsoft login from tunnel | Sharing temporary access with someone without a Microsoft account |
+| `--no-password`            | Removes password auth               | Localhost-only on a single-user machine                           |
+| `--lan` / `--host 0.0.0.0` | Binds to all interfaces             | Trusted home network with password enabled                        |
+| `--lan --no-password`      | LAN-accessible, no auth             | **Not recommended**                                               |
 
 ### Quick Safety Checklist
 
 Before running TermBeam, verify:
 
 - [ ] **Password is enabled** — don't use `--no-password` unless localhost-only on a trusted machine
-- [ ] **Tunnel is password-protected** — the auto-generated password is your primary defense for tunnel access
+- [ ] **Tunnel is private** — don't use `--public` unless you specifically need anonymous tunnel access
 - [ ] **Bind is localhost** — don't use `--lan` unless you need LAN access on a trusted network
 - [ ] **Close when done** — TermBeam is not a daemon; don't leave it running unattended
 - [ ] **Check the network** — on shared/public Wi-Fi, stick to defaults
@@ -185,7 +184,7 @@ The following UI features are entirely client-side and introduce **no new server
 
 1. **Password is on by default** — use `--no-password` only for trusted localhost scenarios. `--public` requires password authentication and will refuse to start without it
 2. **Localhost is the default** — use `--lan` only when you need LAN access
-3. **Tunnel access is public by default** — protected by TermBeam's auto-generated password. Use `--private` to add Microsoft account login (note: breaks PWA icons), or `--no-tunnel` for LAN-only mode
+3. **Tunnel access is private by default** — only you (the tunnel owner) can access it via Microsoft login. Use `--public` to allow public access, or `--no-tunnel` for LAN-only mode
 4. **Close TermBeam when done** — it's not a daemon, don't leave it running
 5. **Use on trusted networks** — TermBeam is not designed for hostile environments
 

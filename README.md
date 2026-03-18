@@ -109,8 +109,7 @@ flowchart LR
 | `--port <port>`       | Server port                                     | `3456`         |
 | `--host <addr>`       | Bind address                                    | `127.0.0.1`    |
 | `--lan`               | Bind to all interfaces (LAN access)             | Off            |
-| `--public`            | Public tunnel access (default)                  | On             |
-| `--private`           | Require Microsoft login for tunnel access       | Off            |
+| `--public`            | Allow public tunnel access (no Microsoft login) | Off            |
 | `-i, --interactive`   | Interactive setup wizard                        | Off            |
 | `--log-level <level>` | Log verbosity (error/warn/info/debug)           | `info`         |
 

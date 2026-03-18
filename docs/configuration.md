@@ -7,24 +7,23 @@ description: All TermBeam CLI flags and options — ports, passwords, tunnels, s
 
 ## CLI Flags
 
-| Flag                  | Description                                                                                                             | Default        |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------------- | -------------- |
-| `--password <pw>`     | Set access password (also accepts `--password=<pw>`)                                                                    | Auto-generated |
-| `--generate-password` | Auto-generate a secure password (default behavior)                                                                      | On             |
-| `--no-password`       | Disable password authentication (cannot combine with tunnel)                                                            | —              |
-| `--tunnel`            | Create an ephemeral devtunnel URL (public access)                                                                       | On             |
-| `--no-tunnel`         | Disable tunnel                                                                                                          | —              |
-| `--persisted-tunnel`  | Create a reusable devtunnel URL (stable across restarts)                                                                | Off            |
-| `--public`            | Public tunnel access (default, kept for backwards compatibility)                                                        | On             |
-| `--private`           | Require Microsoft account login for tunnel access (adds AAD auth on top of TermBeam password). Breaks PWA icon display. | Off            |
-| `--port <port>`       | Server port (must be 1-65535)                                                                                           | `3456`         |
-| `--host <addr>`       | Bind address                                                                                                            | `127.0.0.1`    |
-| `--lan`               | Bind to all interfaces (LAN access)                                                                                     | Off            |
-| `-i, --interactive`   | Interactive setup wizard — walks through password, port, access mode (tunnel type, visibility), and log level           | Off            |
-| `--force`             | Stop any existing TermBeam server before starting a new one                                                             | Off            |
-| `-h, --help`          | Show help                                                                                                               | —              |
-| `-v, --version`       | Show version                                                                                                            | —              |
-| `--log-level <level>` | Set log verbosity: `error`, `warn`, `info`, `debug`                                                                     | `info`         |
+| Flag                  | Description                                                                                                   | Default        |
+| --------------------- | ------------------------------------------------------------------------------------------------------------- | -------------- |
+| `--password <pw>`     | Set access password (also accepts `--password=<pw>`)                                                          | Auto-generated |
+| `--generate-password` | Auto-generate a secure password (default behavior)                                                            | On             |
+| `--no-password`       | Disable password authentication (cannot combine with `--public`)                                              | —              |
+| `--tunnel`            | Create an ephemeral devtunnel URL (private access)                                                            | On             |
+| `--no-tunnel`         | Disable tunnel                                                                                                | —              |
+| `--persisted-tunnel`  | Create a reusable devtunnel URL (stable across restarts)                                                      | Off            |
+| `--public`            | Allow public tunnel access (no Microsoft login required)                                                      | Off            |
+| `--port <port>`       | Server port (must be 1-65535)                                                                                 | `3456`         |
+| `--host <addr>`       | Bind address                                                                                                  | `127.0.0.1`    |
+| `--lan`               | Bind to all interfaces (LAN access)                                                                           | Off            |
+| `-i, --interactive`   | Interactive setup wizard — walks through password, port, access mode (tunnel type, visibility), and log level | Off            |
+| `--force`             | Stop any existing TermBeam server before starting a new one                                                   | Off            |
+| `-h, --help`          | Show help                                                                                                     | —              |
+| `-v, --version`       | Show version                                                                                                  | —              |
+| `--log-level <level>` | Set log verbosity: `error`, `warn`, `info`, `debug`                                                           | `info`         |
 
 ## Environment Variables
 
@@ -137,22 +136,22 @@ termbeam --lan
 # Allow LAN access (equivalent to --lan)
 termbeam --host 0.0.0.0
 
-# Tunnel is on by default (public access, password-protected)
+# Tunnel is on by default (private, owner-only access)
 termbeam
 ```
 
 ### DevTunnel
 
-The `--tunnel` flag creates a public URL using [Azure DevTunnels](https://learn.microsoft.com/en-us/azure/developer/dev-tunnels/). Anyone with the URL can reach the login page — TermBeam's password auth is the security layer:
+The `--tunnel` flag creates a private URL using [Azure DevTunnels](https://learn.microsoft.com/en-us/azure/developer/dev-tunnels/). By default, only the tunnel owner (you) can access it — visitors must authenticate with the same Microsoft account used by `devtunnel user login`:
 
 ```bash
 termbeam --password mysecret
 ```
 
-To add **Microsoft account login** on top of the password (private tunnel), use `--private`. Note: this breaks PWA icon display since browsers fetch icons without auth cookies:
+To allow **public access** (anyone with the URL can connect), add `--public`:
 
 ```bash
-termbeam --private --password mysecret
+termbeam --public --password mysecret
 ```
 
 For a **stable URL** that persists across restarts, use `--persisted-tunnel`:
@@ -168,7 +167,7 @@ termbeam --persisted-tunnel --password mysecret
 
 <!-- prettier-ignore -->
 !!! warning
-    A password is always auto-generated by default. Tunnel access is public by default — TermBeam password auth protects the terminal. Use `--private` to add Microsoft account login on top (note: this breaks PWA icon display). **Tunnel cannot be combined with `--no-password`** — TermBeam will refuse to start to prevent unauthenticated public exposure.
+    A password is always auto-generated by default. By default, tunnel access is private (owner-only via Microsoft login). Use `--public` to allow public access. **`--public` cannot be combined with `--no-password`** — TermBeam will refuse to start to prevent unauthenticated public exposure.
 
 Requirements:
 

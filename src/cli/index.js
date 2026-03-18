@@ -25,10 +25,10 @@ Options:
   --password <pw>       Set access password (or TERMBEAM_PASSWORD env var)
   --generate-password   Auto-generate a secure password (default: auto)
   --no-password         Disable password authentication
-  --tunnel              Create a devtunnel URL (default: on, public access)
+  --tunnel              Create a devtunnel URL (default: on, private access)
   --no-tunnel           Disable tunnel (LAN-only mode)
   --persisted-tunnel    Create a reusable devtunnel URL (stable across restarts)
-  --private             Require Microsoft login to access the tunnel (owner-only)
+  --public              Allow public tunnel access (default: private, owner-only)
   --port <port>         Set port (default: 3456, or PORT env var)
   --host <addr>         Bind address (default: 127.0.0.1)
   --lan                 Bind to 0.0.0.0 (allow LAN access, default: localhost only)
@@ -40,9 +40,9 @@ Options:
 
 Defaults:
   By default, TermBeam enables tunnel + auto-generated password for secure
-  mobile access (clipboard, HTTPS). Tunnels are public (anonymous) — TermBeam's
-  own password auth protects your terminal. Use --private for owner-only access
-  via Microsoft login, or --no-tunnel for LAN-only mode.
+  mobile access (clipboard, HTTPS). Tunnels are private (owner-only via
+  Microsoft login). Use --public for public access, or
+  --no-tunnel for LAN-only mode.
 
 Examples:
   termbeam                          Start with tunnel + auto password
@@ -249,7 +249,7 @@ function parseArgs() {
   let useTunnel = true;
   let noTunnel = false;
   let persistedTunnel = false;
-  let privateTunnel = false;
+  let publicTunnel = false;
   let interactive = false;
   let force = false;
   let explicitPassword = !!password;
@@ -268,10 +268,8 @@ function parseArgs() {
     } else if (args[i] === '--persisted-tunnel') {
       useTunnel = true;
       persistedTunnel = true;
-    } else if (args[i] === '--private') {
-      privateTunnel = true;
     } else if (args[i] === '--public') {
-      // no-op: public is now the default; kept for backwards compatibility
+      publicTunnel = true;
     } else if (args[i].startsWith('--password=')) {
       password = args[i].split('=')[1];
       if (!password) {
@@ -334,24 +332,24 @@ function parseArgs() {
   // --no-tunnel disables the default tunnel
   if (noTunnel) useTunnel = false;
 
-  // --private requires a tunnel
-  if (privateTunnel && !useTunnel) {
+  // --public requires a tunnel
+  if (publicTunnel && !useTunnel) {
     const rd = '\x1b[31m';
     const rs = '\x1b[0m';
-    log.error('--private requires a tunnel');
+    log.error('--public requires a tunnel');
     console.error(
-      `${rd}Error: --private requires a tunnel. Remove --no-tunnel or remove --private.${rs}`,
+      `${rd}Error: --public requires a tunnel. Remove --no-tunnel or remove --public.${rs}`,
     );
     process.exit(1);
   }
 
-  // Public tunnels (default) require password authentication
-  if (useTunnel && !privateTunnel && !password) {
+  // --public requires password authentication
+  if (publicTunnel && !password) {
     const rd = '\x1b[31m';
     const rs = '\x1b[0m';
     log.error('Public tunnels require password authentication');
     console.error(
-      `${rd}Error: Public tunnels require password authentication. Remove --no-password or add --private.${rs}`,
+      `${rd}Error: Public tunnels require password authentication. Remove --no-password or remove --public.${rs}`,
     );
     process.exit(1);
   }
@@ -368,7 +366,7 @@ function parseArgs() {
     password,
     useTunnel,
     persistedTunnel,
-    privateTunnel,
+    publicTunnel,
     shell,
     shellArgs,
     cwd,
@@ -380,7 +378,7 @@ function parseArgs() {
   };
 
   log.debug(
-    `Config: port=${port}, host=${host}, shell=${shell}, tunnel=${useTunnel}, persisted=${persistedTunnel}, private=${privateTunnel}`,
+    `Config: port=${port}, host=${host}, shell=${shell}, tunnel=${useTunnel}, persisted=${persistedTunnel}, public=${publicTunnel}`,
   );
 
   return config;

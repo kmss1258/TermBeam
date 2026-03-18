@@ -80,8 +80,8 @@ function buildArgs(config) {
   if (config.persistedTunnel) {
     args.push('--persisted-tunnel');
   }
-  if (config.privateTunnel) {
-    args.push('--private');
+  if (config.publicTunnel) {
+    args.push('--public');
   }
   if (config.logLevel && config.logLevel !== 'info') {
     args.push('--log-level', config.logLevel);
@@ -291,16 +291,17 @@ async function actionInstall() {
     showProgress(3);
     const publicChoice = await choose(rl, 'Tunnel access:', [
       {
-        label: 'Public (anyone with the link)',
-        hint: 'Anonymous access — TermBeam password protects your terminal (recommended)',
-      },
-      {
         label: 'Private (requires Microsoft login)',
         hint: 'Only you can access the tunnel — secured via your Microsoft account',
       },
+      {
+        label: 'Public (anyone with the link)',
+        hint: '🚨 Anyone with the URL can reach your terminal — password is the only protection',
+        danger: true,
+      },
     ]);
-    config.privateTunnel = publicChoice.index === 1;
-    if (!config.privateTunnel && config.password === false) {
+    config.publicTunnel = publicChoice.index === 1;
+    if (config.publicTunnel && config.password === false) {
       console.log(yellow('  ⚠ Public tunnels require password authentication.'));
       config.password = crypto.randomBytes(16).toString('base64url');
       process.stdout.write(dim(`  Auto-generated password: ${config.password}`) + '\n');
@@ -318,9 +319,9 @@ async function actionInstall() {
     ? config.lan
       ? 'LAN (0.0.0.0)'
       : 'Localhost only'
-    : config.privateTunnel
-      ? 'DevTunnel (private)'
-      : 'DevTunnel (public)';
+    : config.publicTunnel
+      ? 'DevTunnel (public)'
+      : 'DevTunnel (private)';
   decisions.push({ label: 'Access', value: accessLabel });
 
   // Working directory
@@ -367,7 +368,7 @@ async function actionInstall() {
   console.log(`  Tunnel:        ${config.noTunnel ? yellow('disabled') : cyan('enabled')}`);
   if (!config.noTunnel) {
     console.log(`  Persisted:     ${config.persistedTunnel ? cyan('yes') : dim('no')}`);
-    console.log(`  Public:        ${config.privateTunnel ? yellow('no (private)') : dim('yes')}`);
+    console.log(`  Public:        ${config.publicTunnel ? yellow('yes') : dim('no')}`);
   }
   console.log(`  Directory:     ${cyan(config.cwd)}`);
   console.log(`  Shell:         ${cyan(config.shell || 'default')}`);

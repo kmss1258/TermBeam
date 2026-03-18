@@ -64,7 +64,7 @@ const baseConfig = {
   password: null,
   useTunnel: true,
   persistedTunnel: false,
-  privateTunnel: false,
+  publicTunnel: false,
   shell: '/bin/zsh',
   shellArgs: [],
   cwd: '/tmp',
@@ -269,7 +269,7 @@ describe('Interactive', () => {
           { index: 0, value: 'Auto-generate' }, // password
           { index: 0, value: 'DevTunnel (internet)' }, // access
           { index: 0, value: 'Ephemeral' }, // persistence
-          { index: 0, value: 'Public' }, // visibility (now default)
+          { index: 0, value: 'Private (owner-only)' }, // visibility
           { index: 0, value: 'info' }, // log level
         ],
         askAnswers: ['3456'],
@@ -279,20 +279,20 @@ describe('Interactive', () => {
         const config = await interactive.runInteractiveSetup({ ...baseConfig });
         assert.strictEqual(config.useTunnel, true);
         assert.strictEqual(config.persistedTunnel, false);
-        assert.strictEqual(config.privateTunnel, false);
+        assert.strictEqual(config.publicTunnel, false);
         assert.strictEqual(config.host, '127.0.0.1');
       } finally {
         restore();
       }
     });
 
-    it('configures DevTunnel persisted private', async () => {
+    it('configures DevTunnel persisted public', async () => {
       const { interactive, restore } = loadInteractiveWithMocks({
         chooseAnswers: [
-          { index: 0, value: 'Auto-generate' }, // password
+          { index: 0, value: 'Auto-generate' }, // password (auto so public tunnel won't force re-gen)
           { index: 0, value: 'DevTunnel (internet)' }, // access
           { index: 1, value: 'Persisted' }, // persistence
-          { index: 1, value: 'Private (owner-only)' }, // visibility (index 1 = private)
+          { index: 1, value: 'Public' }, // visibility
           { index: 0, value: 'info' }, // log level
         ],
         askAnswers: ['3456'],
@@ -302,7 +302,7 @@ describe('Interactive', () => {
         const config = await interactive.runInteractiveSetup({ ...baseConfig });
         assert.strictEqual(config.useTunnel, true);
         assert.strictEqual(config.persistedTunnel, true);
-        assert.strictEqual(config.privateTunnel, true);
+        assert.strictEqual(config.publicTunnel, true);
       } finally {
         restore();
       }
@@ -314,7 +314,7 @@ describe('Interactive', () => {
           { index: 2, value: 'No password' }, // no password
           { index: 0, value: 'DevTunnel (internet)' }, // access
           { index: 0, value: 'Ephemeral' }, // persistence
-          { index: 0, value: 'Public' }, // public (now default, index 0)
+          { index: 1, value: 'Public' }, // public
           { index: 0, value: 'info' }, // log level
         ],
         askAnswers: ['3456'],
@@ -344,7 +344,7 @@ describe('Interactive', () => {
         assert.strictEqual(config.host, '0.0.0.0');
         assert.strictEqual(config.useTunnel, false);
         assert.strictEqual(config.persistedTunnel, false);
-        assert.strictEqual(config.privateTunnel, false);
+        assert.strictEqual(config.publicTunnel, false);
       } finally {
         restore();
       }

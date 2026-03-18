@@ -89,7 +89,7 @@ const baseConfig = {
   password: null,
   useTunnel: false,
   persistedTunnel: false,
-  privateTunnel: false,
+  publicTunnel: false,
   shell: process.platform === 'win32' ? 'cmd.exe' : '/bin/sh',
   shellArgs: [],
   cwd: process.cwd(),
@@ -367,47 +367,53 @@ describe('server.js', () => {
     });
   });
 
-  // ── Private tunnel info message ──────────────────────────────────────────
+  // ── Public tunnel consent (confirmPublicTunnel) ──────────────────────────
 
-  describe('private tunnel info message', () => {
-    it('shows info message for private tunnel', async () => {
-      tunnelState.startTunnel = async () => ({ url: 'https://private-tunnel.example.com' });
+  describe('public tunnel consent', () => {
+    it('exits when user declines public tunnel', async () => {
+      const readline = require('readline');
+      const origCreateInterface = readline.createInterface;
+      readline.createInterface = () => ({
+        question: (_prompt, cb) => cb('n'),
+        close: () => {},
+      });
 
-      const logs = [];
-      const origLog = console.log;
-      console.log = (...args) => logs.push(args.join(' '));
+      const origExit = process.exit;
+      let exitCode;
+      process.exit = (code) => {
+        exitCode = code;
+        throw new Error('EXIT');
+      };
 
-      let inst;
       try {
-        inst = await startServer({ useTunnel: true, privateTunnel: true });
-        assert.ok(inst.port > 0);
-        assert.ok(
-          logs.some((m) => m.includes('Private tunnel')),
-          'Should show private tunnel info message',
-        );
+        const inst = createTermBeamServer({
+          config: makeConfig({ useTunnel: true, publicTunnel: true }),
+        });
+        await assert.rejects(inst.start(), { message: 'EXIT' });
+        assert.equal(exitCode, 1);
+        inst.shutdown();
       } finally {
-        console.log = origLog;
-        inst?.shutdown();
+        process.exit = origExit;
+        readline.createInterface = origCreateInterface;
       }
     });
 
-    it('does not show private tunnel message for default public tunnel', async () => {
-      tunnelState.startTunnel = async () => ({ url: 'https://public-tunnel.example.com' });
+    it('proceeds when user confirms public tunnel', async () => {
+      const readline = require('readline');
+      const origCreateInterface = readline.createInterface;
+      readline.createInterface = () => ({
+        question: (_prompt, cb) => cb('y'),
+        close: () => {},
+      });
 
-      const logs = [];
-      const origLog = console.log;
-      console.log = (...args) => logs.push(args.join(' '));
+      tunnelState.startTunnel = async () => ({ url: 'https://public-tunnel.example.com' });
 
       let inst;
       try {
-        inst = await startServer({ useTunnel: true, privateTunnel: false });
+        inst = await startServer({ useTunnel: true, publicTunnel: true });
         assert.ok(inst.port > 0);
-        assert.ok(
-          !logs.some((m) => m.includes('Private tunnel')),
-          'Should not show private tunnel info message for public tunnel',
-        );
       } finally {
-        console.log = origLog;
+        readline.createInterface = origCreateInterface;
         inst?.shutdown();
       }
     });
