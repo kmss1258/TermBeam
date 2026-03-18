@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.14.5] - 2026-03-18
+
+- feat(tunnel): make tunnel public by default for PWA compatibility
+
 ## [1.14.4] - 2026-03-18
 
 - fix(pwa): add icon/manifest tags to login page and fix maskable purpose
