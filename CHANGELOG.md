@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.14.6] - 2026-03-18
+
+- Revert "feat(tunnel): make tunnel public by default for PWA compatibility"
+
 ## [1.14.5] - 2026-03-18
 
 - feat(tunnel): make tunnel public by default for PWA compatibility
