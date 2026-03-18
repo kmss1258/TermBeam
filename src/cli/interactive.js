@@ -58,7 +58,7 @@ async function runInteractiveSetup(baseConfig) {
     password: baseConfig.password,
     useTunnel: baseConfig.useTunnel,
     persistedTunnel: baseConfig.persistedTunnel,
-    publicTunnel: baseConfig.publicTunnel,
+    privateTunnel: baseConfig.privateTunnel,
     shell: baseConfig.shell,
     shellArgs: baseConfig.shellArgs,
     cwd: baseConfig.cwd,
@@ -153,19 +153,18 @@ async function runInteractiveSetup(baseConfig) {
     showProgress(2);
     const publicChoice = await choose(rl, 'Tunnel access:', [
       {
-        label: 'Private (owner-only)',
-        hint: 'Only the Microsoft account that created the tunnel can access it',
+        label: 'Public',
+        hint: 'Anonymous access — TermBeam password protects your terminal (recommended)',
       },
       {
-        label: 'Public',
-        hint: '🚨 No Microsoft login — anyone with the URL can reach your terminal',
-        danger: true,
+        label: 'Private (owner-only)',
+        hint: 'Requires Microsoft login to reach the tunnel — adds extra auth layer',
       },
     ]);
-    config.publicTunnel = publicChoice.index === 1;
+    config.privateTunnel = publicChoice.index === 1;
 
     // Auto-generate password if public tunnel with no password
-    if (config.publicTunnel && !config.password) {
+    if (!config.privateTunnel && !config.password) {
       console.log(yellow('  ⚠ Public tunnels require password authentication.'));
       config.password = crypto.randomBytes(16).toString('base64url');
       process.stdout.write(dim(`  Auto-generated password: ${config.password}`) + '\n');
@@ -178,22 +177,22 @@ async function runInteractiveSetup(baseConfig) {
     config.host = '0.0.0.0';
     config.useTunnel = false;
     config.persistedTunnel = false;
-    config.publicTunnel = false;
+    config.privateTunnel = false;
   } else {
     // Localhost only
     config.host = '127.0.0.1';
     config.useTunnel = false;
     config.persistedTunnel = false;
-    config.publicTunnel = false;
+    config.privateTunnel = false;
   }
 
   const accessLabel = !config.useTunnel
     ? config.host === '0.0.0.0'
       ? 'LAN (0.0.0.0)'
       : 'Localhost only'
-    : config.publicTunnel
-      ? 'DevTunnel (public)'
-      : 'DevTunnel (private)';
+    : config.privateTunnel
+      ? 'DevTunnel (private)'
+      : 'DevTunnel (public)';
   log.debug(`Access mode selected: ${accessLabel}`);
   decisions.push({ label: 'Access', value: accessLabel });
 
@@ -226,7 +225,7 @@ async function runInteractiveSetup(baseConfig) {
   console.log(`  Tunnel:        ${config.useTunnel ? cyan('enabled') : yellow('disabled')}`);
   if (config.useTunnel) {
     console.log(`  Persisted:     ${config.persistedTunnel ? cyan('yes') : dim('no')}`);
-    console.log(`  Public:        ${config.publicTunnel ? yellow('yes') : dim('no')}`);
+    console.log(`  Public:        ${config.privateTunnel ? dim('no (private)') : cyan('yes')}`);
   }
   console.log(`  Shell:         ${cyan(config.shell || 'default')}`);
   console.log(`  Directory:     ${cyan(config.cwd)}`);
@@ -247,7 +246,7 @@ async function runInteractiveSetup(baseConfig) {
     if (config.host === '0.0.0.0') cmdParts.push('--lan');
   } else {
     if (config.persistedTunnel) cmdParts.push('--persisted-tunnel');
-    if (config.publicTunnel) cmdParts.push('--public');
+    if (config.privateTunnel) cmdParts.push('--private');
   }
   if (config.logLevel !== 'info') cmdParts.push('--log-level', config.logLevel);
   const cliCommand = cmdParts.join(' ');

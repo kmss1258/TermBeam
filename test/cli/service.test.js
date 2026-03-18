@@ -66,9 +66,9 @@ describe('service', () => {
       assert.ok(args.includes('--persisted-tunnel'));
     });
 
-    it('adds --public flag', () => {
-      const args = buildArgs({ publicTunnel: true });
-      assert.ok(args.includes('--public'));
+    it('adds --private flag', () => {
+      const args = buildArgs({ privateTunnel: true });
+      assert.ok(args.includes('--private'));
     });
 
     it('adds --log-level when non-default', () => {

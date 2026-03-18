@@ -32,6 +32,7 @@ describe('CLI', () => {
     assert.ok(config.password, 'should auto-generate password by default');
     assert.ok(config.password.length > 10, 'auto-generated password should be long');
     assert.strictEqual(config.useTunnel, true);
+    assert.strictEqual(config.privateTunnel, false, 'should default to public tunnel');
   });
 
   it('should parse --password flag', () => {
@@ -258,7 +259,7 @@ describe('CLI', () => {
   });
 
   it('should parse --no-password flag', () => {
-    process.argv = ['node', 'termbeam', '--no-password'];
+    process.argv = ['node', 'termbeam', '--no-password', '--no-tunnel'];
     const { parseArgs } = require('../../src/cli');
     const config = parseArgs();
     assert.strictEqual(config.password, null);
@@ -271,12 +272,13 @@ describe('CLI', () => {
     assert.strictEqual(config.useTunnel, false);
   });
 
-  it('--no-password should disable auto-generated password', () => {
-    process.argv = ['node', 'termbeam', '--no-password'];
+  it('--no-password with --private should work (private tunnels do not require password)', () => {
+    process.argv = ['node', 'termbeam', '--no-password', '--private'];
     const { parseArgs } = require('../../src/cli');
     const config = parseArgs();
     assert.strictEqual(config.password, null);
     assert.strictEqual(config.useTunnel, true);
+    assert.strictEqual(config.privateTunnel, true);
   });
 
   it('should parse --log-level flag', () => {
@@ -324,8 +326,8 @@ describe('CLI', () => {
     }
   });
 
-  it('--public --no-password should exit with error', () => {
-    process.argv = ['node', 'termbeam', '--public', '--no-password'];
+  it('--no-password with tunnel should exit with error (public tunnel requires password)', () => {
+    process.argv = ['node', 'termbeam', '--no-password'];
     const exitCalls = [];
     const errorMessages = [];
     const origExit = process.exit;
@@ -346,7 +348,7 @@ describe('CLI', () => {
     }
   });
 
-  it('--public with password should work without error', () => {
+  it('--public flag is accepted as no-op for backwards compatibility', () => {
     process.argv = ['node', 'termbeam', '--public', '--password', 'secret'];
     const exitCalls = [];
     const origExit = process.exit;
@@ -354,23 +356,39 @@ describe('CLI', () => {
     try {
       const { parseArgs } = require('../../src/cli');
       const config = parseArgs();
-      assert.strictEqual(config.publicTunnel, true);
+      assert.strictEqual(config.privateTunnel, false);
       assert.strictEqual(config.password, 'secret');
-      assert.ok(!exitCalls.includes(1), 'Should not exit with error when password is provided');
+      assert.ok(!exitCalls.includes(1), 'Should not exit with error');
     } finally {
       process.exit = origExit;
     }
   });
 
-  it('--public with auto-generated password should work without error', () => {
-    process.argv = ['node', 'termbeam', '--public'];
+  it('--private flag sets privateTunnel', () => {
+    process.argv = ['node', 'termbeam', '--private', '--password', 'secret'];
     const exitCalls = [];
     const origExit = process.exit;
     process.exit = (code) => exitCalls.push(code);
     try {
       const { parseArgs } = require('../../src/cli');
       const config = parseArgs();
-      assert.strictEqual(config.publicTunnel, true);
+      assert.strictEqual(config.privateTunnel, true);
+      assert.strictEqual(config.password, 'secret');
+      assert.ok(!exitCalls.includes(1), 'Should not exit with error');
+    } finally {
+      process.exit = origExit;
+    }
+  });
+
+  it('--private with auto-generated password should work without error', () => {
+    process.argv = ['node', 'termbeam', '--private'];
+    const exitCalls = [];
+    const origExit = process.exit;
+    process.exit = (code) => exitCalls.push(code);
+    try {
+      const { parseArgs } = require('../../src/cli');
+      const config = parseArgs();
+      assert.strictEqual(config.privateTunnel, true);
       assert.ok(config.password, 'Should have auto-generated password');
       assert.ok(
         !exitCalls.includes(1),
@@ -640,8 +658,8 @@ describe('CLI', () => {
     }
   });
 
-  it('--public --no-tunnel should exit with error', () => {
-    process.argv = ['node', 'termbeam', '--public', '--no-tunnel'];
+  it('--private --no-tunnel should exit with error', () => {
+    process.argv = ['node', 'termbeam', '--private', '--no-tunnel'];
     const exitCalls = [];
     const errorMessages = [];
     const origExit = process.exit;
@@ -653,8 +671,8 @@ describe('CLI', () => {
       parseArgs();
       assert.ok(exitCalls.includes(1), 'Should call process.exit(1)');
       assert.ok(
-        errorMessages.some((m) => m.includes('--public requires a tunnel')),
-        'Should mention --public requires a tunnel',
+        errorMessages.some((m) => m.includes('--private requires a tunnel')),
+        'Should mention --private requires a tunnel',
       );
     } finally {
       process.exit = origExit;
