@@ -132,7 +132,6 @@ async function openPaletteAndClick(page, actionLabel) {
   await page.locator('[data-testid="palette-trigger"]').click();
   await expect(page.locator('[data-testid="palette-panel"]')).toBeVisible();
   await page.locator('[data-testid="palette-action"]').filter({ hasText: actionLabel }).click();
-  await page.waitForTimeout(300);
 }
 
 // ─── Key Bar: Input Keys ────────────────────────────────────────────────────
@@ -606,7 +605,6 @@ test.describe('Command Palette — Split View', () => {
     await expect(page.locator('[data-testid="new-session-modal"]')).not.toBeVisible({
       timeout: 5_000,
     });
-    await page.waitForTimeout(500);
 
     const initialPanes = await page
       .locator('[data-testid="terminal-pane"][data-visible="true"]')
@@ -671,16 +669,15 @@ test.describe('Top Bar — New Session', () => {
     await expect(page.locator('[data-testid="new-session-modal"]')).not.toBeVisible({
       timeout: 5_000,
     });
-    await page.waitForTimeout(1000);
-
-    const finalTabs = await page.locator('[data-testid="session-tab"]').count();
-    expect(finalTabs).toBe(initialTabs + 1);
+    await expect(async () => {
+      const tabs = await page.locator('[data-testid="session-tab"]').count();
+      expect(tabs).toBe(initialTabs + 1);
+    }).toPass({ timeout: 5_000 });
 
     // Wait for the new session's WebSocket to connect
     await expect(page.locator('[data-testid="status-dot"].connected')).toBeVisible({
       timeout: 10_000,
     });
-    await page.waitForTimeout(500);
 
     // Verify the new session has a working terminal
     const marker = `NEWSESS_${Date.now()}`;
@@ -744,13 +741,11 @@ test.describe('Top Bar — Side Panel (mobile viewport)', () => {
     await expect(page.locator('[data-testid="new-session-modal"]')).not.toBeVisible({
       timeout: 5_000,
     });
-    await page.waitForTimeout(1000);
 
     // Wait for second session to connect
     await expect(page.locator('[data-testid="status-dot"].connected')).toBeVisible({
       timeout: 10_000,
     });
-    await page.waitForTimeout(500);
 
     // Run a command in the second session
     const marker2 = `SECOND_${Date.now()}`;
@@ -762,7 +757,12 @@ test.describe('Top Bar — Side Panel (mobile viewport)', () => {
     await page.locator('[aria-label="Toggle panel"]').click();
     await expect(page.locator('[data-testid="side-panel"]')).toBeVisible();
     await page.locator('[data-testid="side-panel-card"]').nth(1).click();
-    await page.waitForTimeout(500);
+
+    // Wait for terminal content to update after switching sessions
+    await expect(async () => {
+      const text = await getTerminalText(page);
+      expect(text).toContain(marker1);
+    }).toPass({ timeout: 5_000 });
 
     // The test session should be active — it should have marker1 but not marker2
     const text = await getTerminalText(page);
@@ -797,15 +797,16 @@ test.describe('Top Bar — Navigation & Session Control', () => {
     // Accept the confirm dialog and stop via tools panel
     page.on('dialog', (dialog) => dialog.accept());
     await openPaletteAndClick(page, 'Stop session');
-    await page.waitForTimeout(1000);
 
-    // Session should be removed from the server
-    const afterCount = await page.evaluate(async () => {
-      const res = await fetch('/api/sessions');
-      const sessions = await res.json();
-      return sessions.length;
-    });
-    expect(afterCount).toBe(beforeCount - 1);
+    // Poll until session is removed from the server
+    await expect(async () => {
+      const afterCount = await page.evaluate(async () => {
+        const res = await fetch('/api/sessions');
+        const sessions = await res.json();
+        return sessions.length;
+      });
+      expect(afterCount).toBe(beforeCount - 1);
+    }).toPass({ timeout: 5_000 });
   });
 });
 
@@ -908,7 +909,6 @@ test.describe('Activity Indicators', () => {
     await expect(page.locator('[data-testid="new-session-modal"]')).not.toBeVisible({
       timeout: 5_000,
     });
-    await page.waitForTimeout(500);
 
     // Wait for the first session's output to arrive while we're on the second tab
     await expect(async () => {
@@ -920,10 +920,10 @@ test.describe('Activity Indicators', () => {
     // to clear its unread indicator
     const testTab = page.locator('[data-testid="session-tab"]').nth(1);
     await testTab.click();
-    await page.waitForTimeout(300);
-    // The test session tab is now active, so its unread dot is removed
-    const unreadAfter = await testTab.locator('[data-testid="tab-unread"]').count();
-    expect(unreadAfter).toBe(0);
+    await expect(async () => {
+      const unreadAfter = await testTab.locator('[data-testid="tab-unread"]').count();
+      expect(unreadAfter).toBe(0);
+    }).toPass({ timeout: 5_000 });
   });
 
   test('Notification toggle exists in command palette', async ({ page }) => {

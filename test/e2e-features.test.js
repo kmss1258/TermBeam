@@ -153,7 +153,6 @@ async function openPaletteAndClick(page, actionLabel) {
     timeout: 3_000,
   });
   await page.click(`[data-testid="palette-action"]:has-text("${actionLabel}")`);
-  await page.waitForTimeout(300);
 }
 
 // ─── 1. New Session Modal — Hub Page ────────────────────────────────────────
@@ -300,7 +299,11 @@ test.describe('Session Management', () => {
 
     // Switch to first session
     await page.locator('[data-testid="session-tab"]').first().click();
-    await page.waitForTimeout(500);
+
+    // Wait for terminal to become connected and show content
+    await expect(page.locator('[data-testid="status-dot"].connected')).toBeVisible({
+      timeout: 10_000,
+    });
 
     // Type in first — should work
     const marker1 = `S1_${Date.now()}`;
@@ -337,7 +340,6 @@ test.describe('Session Management', () => {
 
     // Switch back to the API-created session (index 1; index 0 is auto-created)
     await page.locator('[data-testid="session-tab"]').nth(1).click();
-    await page.waitForTimeout(500);
 
     // First session should still show its marker
     await waitForTerminalOutput(page, marker1);
@@ -597,7 +599,6 @@ test.describe('Hub Page', () => {
 
     // Click refresh
     await page.click('[data-testid="hub-refresh-btn"]');
-    await page.waitForTimeout(1000);
 
     // Sessions should still be listed after refresh
     await expect(page.locator('[data-testid="session-card"]')).toHaveCount(2, {
@@ -718,7 +719,6 @@ test.describe('Multi-Session Tabs', () => {
 
     // Click the API-created session tab (index 1; index 0 is auto-created)
     await page.locator('[data-testid="session-tab"]').nth(1).click();
-    await page.waitForTimeout(500);
 
     // Should see first session content
     await waitForTerminalOutput(page, marker1);
@@ -820,7 +820,6 @@ test.describe('Search', () => {
     await openPaletteAndClick(page, 'Find in terminal');
     await expect(page.locator('[data-testid="search-bar"][data-open="true"]')).toBeVisible();
     await page.fill('[data-testid="search-input"]', marker);
-    await page.waitForTimeout(500);
 
     // Search indicator should show a match (e.g. "1 of 1" or "Found")
     await expect(async () => {
