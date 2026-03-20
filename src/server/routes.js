@@ -463,6 +463,113 @@ function setupRoutes(app, { auth, sessions, config, state }) {
     });
   });
 
+  // Browse files and directories within a session's CWD
+  app.get('/api/sessions/:id/files', apiRateLimit, auth.middleware, (req, res) => {
+    const session = sessions.sessions.get(req.params.id);
+    if (!session) return res.status(404).json({ error: 'Session not found' });
+
+    const rootDir = path.resolve(session.cwd);
+    const dir = path.resolve(rootDir, req.query.dir || '.');
+
+    // Path traversal check
+    if (dir !== rootDir && !dir.startsWith(rootDir + path.sep)) {
+      return res.status(403).json({ error: 'Path outside session directory' });
+    }
+
+    try {
+      const dirents = fs.readdirSync(dir, { withFileTypes: true });
+      const entries = dirents
+        .filter((e) => !e.name.startsWith('.'))
+        .map((e) => {
+          const fullPath = path.join(dir, e.name);
+          const isDir = e.isDirectory();
+          try {
+            const stat = fs.statSync(fullPath);
+            return {
+              name: e.name,
+              type: isDir ? 'directory' : 'file',
+              size: isDir ? 0 : stat.size,
+              modified: stat.mtime.toISOString(),
+            };
+          } catch {
+            return { name: e.name, type: isDir ? 'directory' : 'file', size: 0, modified: null };
+          }
+        })
+        .sort((a, b) => {
+          if (a.type !== b.type) return a.type === 'directory' ? -1 : 1;
+          return a.name.localeCompare(b.name);
+        });
+
+      res.json({ base: dir, rootDir, entries });
+    } catch (err) {
+      log.warn(`File browse failed: ${err.message}`);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Download a file from within a session's CWD
+  app.get('/api/sessions/:id/download', apiRateLimit, auth.middleware, (req, res) => {
+    const session = sessions.sessions.get(req.params.id);
+    if (!session) return res.status(404).json({ error: 'Session not found' });
+
+    const file = req.query.file;
+    if (!file) return res.status(400).json({ error: 'Missing file parameter' });
+
+    const rootDir = path.resolve(session.cwd);
+    const filePath = path.resolve(rootDir, file);
+
+    // Path traversal check
+    if (filePath !== rootDir && !filePath.startsWith(rootDir + path.sep)) {
+      return res.status(403).json({ error: 'Path outside session directory' });
+    }
+
+    try {
+      const stat = fs.statSync(filePath);
+      if (!stat.isFile()) {
+        return res.status(400).json({ error: 'Not a regular file' });
+      }
+      if (stat.size > 100 * 1024 * 1024) {
+        return res.status(413).json({ error: 'File too large (max 100 MB)' });
+      }
+    } catch (err) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    res.setHeader('Content-Disposition', `attachment; filename="${path.basename(filePath)}"`);
+    res.sendFile(filePath);
+  });
+
+  // Read file content as text (for markdown viewer, etc.)
+  app.get('/api/sessions/:id/file-content', apiRateLimit, auth.middleware, (req, res) => {
+    const session = sessions.sessions.get(req.params.id);
+    if (!session) return res.status(404).json({ error: 'Session not found' });
+
+    const file = req.query.file;
+    if (!file) return res.status(400).json({ error: 'Missing file parameter' });
+
+    const rootDir = path.resolve(session.cwd);
+    const filePath = path.resolve(rootDir, file);
+
+    // Path traversal check
+    if (filePath !== rootDir && !filePath.startsWith(rootDir + path.sep)) {
+      return res.status(403).json({ error: 'Path outside session directory' });
+    }
+
+    try {
+      const stat = fs.statSync(filePath);
+      if (!stat.isFile()) {
+        return res.status(400).json({ error: 'Not a regular file' });
+      }
+      if (stat.size > 2 * 1024 * 1024) {
+        return res.status(413).json({ error: 'File too large (max 2 MB)' });
+      }
+      const content = fs.readFileSync(filePath, 'utf8');
+      res.json({ content, name: path.basename(filePath), size: stat.size });
+    } catch (err) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+  });
+
   // Directory listing for folder browser
   app.get('/api/dirs', apiRateLimit, auth.middleware, (req, res) => {
     log.debug(`Directory listing requested: ${req.query.q || config.cwd}`);
@@ -472,16 +579,16 @@ function setupRoutes(app, { auth, sessions, config, state }) {
     const prefix = endsWithSep ? '' : path.basename(query);
 
     try {
+      const MAX_DIRS = 500;
       const entries = fs.readdirSync(dir, { withFileTypes: true });
-      const dirs = entries
+      const filtered = entries
         .filter((e) => e.isDirectory() && !e.name.startsWith('.'))
-        .filter((e) => !prefix || e.name.toLowerCase().startsWith(prefix.toLowerCase()))
-        .slice(0, 50)
-        .map((e) => path.join(dir, e.name));
-      res.json({ base: dir, dirs });
+        .filter((e) => !prefix || e.name.toLowerCase().startsWith(prefix.toLowerCase()));
+      const dirs = filtered.slice(0, MAX_DIRS).map((e) => path.join(dir, e.name));
+      res.json({ base: dir, dirs, truncated: filtered.length > MAX_DIRS });
     } catch (err) {
       log.warn(`Directory listing failed: ${err.message}`);
-      res.json({ base: dir, dirs: [] });
+      res.json({ base: dir, dirs: [], truncated: false });
     }
   });
 }

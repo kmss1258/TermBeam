@@ -1327,4 +1327,497 @@ describe('Routes', () => {
       },
     );
   });
+
+  // === File browse endpoint ===
+  describe('GET /api/sessions/:id/files', () => {
+    let inst;
+    let tmpDir;
+
+    after(() => {
+      inst?.shutdown();
+      if (tmpDir) fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    async function setup() {
+      if (inst) return;
+      tmpDir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'tb-files-'));
+      // Create test fixtures: files, subdirs, hidden items
+      fs.mkdirSync(path.join(tmpDir, 'subdir'));
+      fs.writeFileSync(path.join(tmpDir, 'hello.txt'), 'hello world');
+      fs.writeFileSync(path.join(tmpDir, 'readme.md'), '# Readme');
+      fs.writeFileSync(path.join(tmpDir, '.hidden'), 'secret');
+      fs.mkdirSync(path.join(tmpDir, '.hiddendir'));
+      fs.writeFileSync(path.join(tmpDir, 'subdir', 'nested.txt'), 'nested');
+      inst = await startServer({ cwd: tmpDir });
+    }
+
+    it('should list files and dirs for valid session', async () => {
+      await setup();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: `/api/sessions/${inst.defaultId}/files`,
+        method: 'GET',
+      });
+      assert.strictEqual(res.statusCode, 200);
+      const data = JSON.parse(res.data);
+      assert.ok(Array.isArray(data.entries), 'entries should be an array');
+      assert.ok(data.entries.length > 0, 'should have entries');
+    });
+
+    it('should return entries with correct shape', async () => {
+      await setup();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: `/api/sessions/${inst.defaultId}/files`,
+        method: 'GET',
+      });
+      const data = JSON.parse(res.data);
+      for (const entry of data.entries) {
+        assert.ok(typeof entry.name === 'string', 'name should be a string');
+        assert.ok(
+          entry.type === 'file' || entry.type === 'directory',
+          'type should be file or directory',
+        );
+        assert.ok(typeof entry.size === 'number', 'size should be a number');
+        assert.ok(
+          entry.modified === null || typeof entry.modified === 'string',
+          'modified should be string or null',
+        );
+      }
+    });
+
+    it('should sort directories before files', async () => {
+      await setup();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: `/api/sessions/${inst.defaultId}/files`,
+        method: 'GET',
+      });
+      const data = JSON.parse(res.data);
+      const types = data.entries.map((e) => e.type);
+      const firstFileIdx = types.indexOf('file');
+      const lastDirIdx = types.lastIndexOf('directory');
+      if (firstFileIdx !== -1 && lastDirIdx !== -1) {
+        assert.ok(lastDirIdx < firstFileIdx, 'directories should come before files');
+      }
+    });
+
+    it('should filter out hidden files and dirs', async () => {
+      await setup();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: `/api/sessions/${inst.defaultId}/files`,
+        method: 'GET',
+      });
+      const data = JSON.parse(res.data);
+      const names = data.entries.map((e) => e.name);
+      assert.ok(!names.includes('.hidden'), 'should not include hidden file');
+      assert.ok(!names.includes('.hiddendir'), 'should not include hidden directory');
+      assert.ok(names.includes('hello.txt'), 'should include visible file');
+      assert.ok(names.includes('subdir'), 'should include visible directory');
+    });
+
+    it('should return 404 for invalid session ID', async () => {
+      await setup();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: '/api/sessions/nonexistent-session-id/files',
+        method: 'GET',
+      });
+      assert.strictEqual(res.statusCode, 404);
+      const data = JSON.parse(res.data);
+      assert.strictEqual(data.error, 'Session not found');
+    });
+
+    it('should return 403 for path traversal attempt', async () => {
+      await setup();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: `/api/sessions/${inst.defaultId}/files?dir=../../etc`,
+        method: 'GET',
+      });
+      assert.strictEqual(res.statusCode, 403);
+      const data = JSON.parse(res.data);
+      assert.strictEqual(data.error, 'Path outside session directory');
+    });
+
+    it('should return 401 without auth token when password is set', async () => {
+      // Start a separate password-protected server
+      const pwTmpDir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'tb-files-pw-'));
+      const pwInst = await startServer({ password: 'secret', cwd: pwTmpDir });
+      try {
+        const res = await httpRequest({
+          hostname: '127.0.0.1',
+          port: pwInst.port,
+          path: `/api/sessions/${pwInst.defaultId}/files`,
+          method: 'GET',
+          headers: { Accept: '*/*' },
+        });
+        assert.strictEqual(res.statusCode, 401);
+      } finally {
+        pwInst.shutdown();
+        fs.rmSync(pwTmpDir, { recursive: true, force: true });
+      }
+    });
+
+    it('should work with dir query parameter for subdirectories', async () => {
+      await setup();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: `/api/sessions/${inst.defaultId}/files?dir=subdir`,
+        method: 'GET',
+      });
+      assert.strictEqual(res.statusCode, 200);
+      const data = JSON.parse(res.data);
+      const names = data.entries.map((e) => e.name);
+      assert.ok(names.includes('nested.txt'), 'should include nested file');
+    });
+
+    it('should return rootDir matching session CWD', async () => {
+      await setup();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: `/api/sessions/${inst.defaultId}/files`,
+        method: 'GET',
+      });
+      const data = JSON.parse(res.data);
+      assert.strictEqual(data.rootDir, path.resolve(tmpDir));
+    });
+  });
+
+  // === File download endpoint ===
+  describe('GET /api/sessions/:id/download', () => {
+    let inst;
+    let tmpDir;
+
+    after(() => {
+      inst?.shutdown();
+      if (tmpDir) fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    async function setup() {
+      if (inst) return;
+      tmpDir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'tb-download-'));
+      fs.writeFileSync(path.join(tmpDir, 'test.txt'), 'download me');
+      fs.mkdirSync(path.join(tmpDir, 'adir'));
+      inst = await startServer({ cwd: tmpDir });
+    }
+
+    it('should download a valid file', async () => {
+      await setup();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: `/api/sessions/${inst.defaultId}/download?file=test.txt`,
+        method: 'GET',
+      });
+      assert.strictEqual(res.statusCode, 200);
+      assert.strictEqual(res.data, 'download me');
+    });
+
+    it('should return 404 for invalid session ID', async () => {
+      await setup();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: '/api/sessions/nonexistent-session-id/download?file=test.txt',
+        method: 'GET',
+      });
+      assert.strictEqual(res.statusCode, 404);
+      const data = JSON.parse(res.data);
+      assert.strictEqual(data.error, 'Session not found');
+    });
+
+    it('should return 400 when file param is missing', async () => {
+      await setup();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: `/api/sessions/${inst.defaultId}/download`,
+        method: 'GET',
+      });
+      assert.strictEqual(res.statusCode, 400);
+      const data = JSON.parse(res.data);
+      assert.strictEqual(data.error, 'Missing file parameter');
+    });
+
+    it('should return 403 for path traversal attempt', async () => {
+      await setup();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: `/api/sessions/${inst.defaultId}/download?file=../../etc/passwd`,
+        method: 'GET',
+      });
+      assert.strictEqual(res.statusCode, 403);
+      const data = JSON.parse(res.data);
+      assert.strictEqual(data.error, 'Path outside session directory');
+    });
+
+    it('should return 404 for non-existent file', async () => {
+      await setup();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: `/api/sessions/${inst.defaultId}/download?file=nonexistent.txt`,
+        method: 'GET',
+      });
+      assert.strictEqual(res.statusCode, 404);
+      const data = JSON.parse(res.data);
+      assert.strictEqual(data.error, 'File not found');
+    });
+
+    it('should return 400 for directory (not a file)', async () => {
+      await setup();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: `/api/sessions/${inst.defaultId}/download?file=adir`,
+        method: 'GET',
+      });
+      assert.strictEqual(res.statusCode, 400);
+      const data = JSON.parse(res.data);
+      assert.strictEqual(data.error, 'Not a regular file');
+    });
+
+    it('should return 401 without auth token when password is set', async () => {
+      const pwTmpDir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'tb-dl-pw-'));
+      fs.writeFileSync(path.join(pwTmpDir, 'x.txt'), 'x');
+      const pwInst = await startServer({ password: 'secret', cwd: pwTmpDir });
+      try {
+        const res = await httpRequest({
+          hostname: '127.0.0.1',
+          port: pwInst.port,
+          path: `/api/sessions/${pwInst.defaultId}/download?file=x.txt`,
+          method: 'GET',
+          headers: { Accept: '*/*' },
+        });
+        assert.strictEqual(res.statusCode, 401);
+      } finally {
+        pwInst.shutdown();
+        fs.rmSync(pwTmpDir, { recursive: true, force: true });
+      }
+    });
+
+    it('should set Content-Disposition header correctly', async () => {
+      await setup();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: `/api/sessions/${inst.defaultId}/download?file=test.txt`,
+        method: 'GET',
+      });
+      assert.strictEqual(res.statusCode, 200);
+      assert.ok(res.headers['content-disposition'], 'Should have Content-Disposition header');
+      assert.ok(
+        res.headers['content-disposition'].includes('test.txt'),
+        'Content-Disposition should include filename',
+      );
+    });
+  });
+
+  // === File content endpoint ===
+  describe('GET /api/sessions/:id/file-content', () => {
+    let inst;
+    let tmpDir;
+
+    after(() => {
+      inst?.shutdown();
+      if (tmpDir) fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    async function setup() {
+      if (inst) return;
+      tmpDir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'tb-filecontent-'));
+      fs.writeFileSync(path.join(tmpDir, 'readme.md'), '# Hello\n\nWorld');
+      fs.writeFileSync(path.join(tmpDir, 'test.txt'), 'plain text');
+      fs.mkdirSync(path.join(tmpDir, 'adir'));
+      inst = await startServer({ cwd: tmpDir });
+    }
+
+    it('should return content of a valid text file', async () => {
+      await setup();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: `/api/sessions/${inst.defaultId}/file-content?file=readme.md`,
+        method: 'GET',
+      });
+      assert.strictEqual(res.statusCode, 200);
+      const data = JSON.parse(res.data);
+      assert.strictEqual(data.content, '# Hello\n\nWorld');
+    });
+
+    it('should return correct response shape { content, name, size }', async () => {
+      await setup();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: `/api/sessions/${inst.defaultId}/file-content?file=test.txt`,
+        method: 'GET',
+      });
+      assert.strictEqual(res.statusCode, 200);
+      const data = JSON.parse(res.data);
+      assert.ok(typeof data.content === 'string', 'content should be a string');
+      assert.strictEqual(data.name, 'test.txt');
+      assert.strictEqual(data.size, Buffer.byteLength('plain text'));
+    });
+
+    it('should return 404 for invalid session ID', async () => {
+      await setup();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: '/api/sessions/nonexistent-session-id/file-content?file=readme.md',
+        method: 'GET',
+      });
+      assert.strictEqual(res.statusCode, 404);
+      const data = JSON.parse(res.data);
+      assert.strictEqual(data.error, 'Session not found');
+    });
+
+    it('should return 400 when file param is missing', async () => {
+      await setup();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: `/api/sessions/${inst.defaultId}/file-content`,
+        method: 'GET',
+      });
+      assert.strictEqual(res.statusCode, 400);
+      const data = JSON.parse(res.data);
+      assert.strictEqual(data.error, 'Missing file parameter');
+    });
+
+    it('should return 403 for path traversal attempt', async () => {
+      await setup();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: `/api/sessions/${inst.defaultId}/file-content?file=../../etc/passwd`,
+        method: 'GET',
+      });
+      assert.strictEqual(res.statusCode, 403);
+      const data = JSON.parse(res.data);
+      assert.strictEqual(data.error, 'Path outside session directory');
+    });
+
+    it('should return 404 for non-existent file', async () => {
+      await setup();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: `/api/sessions/${inst.defaultId}/file-content?file=nonexistent.txt`,
+        method: 'GET',
+      });
+      assert.strictEqual(res.statusCode, 404);
+      const data = JSON.parse(res.data);
+      assert.strictEqual(data.error, 'File not found');
+    });
+
+    it('should return 400 for a directory (not a file)', async () => {
+      await setup();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: `/api/sessions/${inst.defaultId}/file-content?file=adir`,
+        method: 'GET',
+      });
+      assert.strictEqual(res.statusCode, 400);
+      const data = JSON.parse(res.data);
+      assert.strictEqual(data.error, 'Not a regular file');
+    });
+
+    it('should return 401 without auth token when password is set', async () => {
+      const pwTmpDir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'tb-fc-pw-'));
+      fs.writeFileSync(path.join(pwTmpDir, 'x.md'), '# X');
+      const pwInst = await startServer({ password: 'secret', cwd: pwTmpDir });
+      try {
+        const res = await httpRequest({
+          hostname: '127.0.0.1',
+          port: pwInst.port,
+          path: `/api/sessions/${pwInst.defaultId}/file-content?file=x.md`,
+          method: 'GET',
+          headers: { Accept: '*/*' },
+        });
+        assert.strictEqual(res.statusCode, 401);
+      } finally {
+        pwInst.shutdown();
+        fs.rmSync(pwTmpDir, { recursive: true, force: true });
+      }
+    });
+
+    it('should return 413 for files larger than 2MB', async () => {
+      await setup();
+      // Create a file just over 2MB
+      const bigContent = 'x'.repeat(2 * 1024 * 1024 + 1);
+      fs.writeFileSync(path.join(tmpDir, 'big.txt'), bigContent);
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: `/api/sessions/${inst.defaultId}/file-content?file=big.txt`,
+        method: 'GET',
+      });
+      assert.strictEqual(res.statusCode, 413);
+      const data = JSON.parse(res.data);
+      assert.strictEqual(data.error, 'File too large (max 2 MB)');
+    });
+  });
+
+  // === Directory listing endpoint ===
+  describe('GET /api/dirs', () => {
+    let inst;
+    let tmpDir;
+
+    after(() => {
+      inst?.shutdown();
+      if (tmpDir) fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    async function setup() {
+      if (inst) return;
+      tmpDir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'tb-dirs-'));
+      fs.mkdirSync(path.join(tmpDir, 'alpha'));
+      fs.mkdirSync(path.join(tmpDir, 'beta'));
+      fs.writeFileSync(path.join(tmpDir, 'file.txt'), 'not a dir');
+      inst = await startServer({ cwd: tmpDir });
+    }
+
+    it('should return truncated: false when dirs count < 500', async () => {
+      await setup();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: `/api/dirs?q=${encodeURIComponent(tmpDir + path.sep)}`,
+        method: 'GET',
+      });
+      assert.strictEqual(res.statusCode, 200);
+      const data = JSON.parse(res.data);
+      assert.strictEqual(data.truncated, false);
+    });
+
+    it('should include the truncated field in response', async () => {
+      await setup();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: `/api/dirs?q=${encodeURIComponent(tmpDir + path.sep)}`,
+        method: 'GET',
+      });
+      assert.strictEqual(res.statusCode, 200);
+      const data = JSON.parse(res.data);
+      assert.ok('truncated' in data, 'Response should have a truncated field');
+      assert.ok('dirs' in data, 'Response should have a dirs field');
+      assert.ok('base' in data, 'Response should have a base field');
+      assert.ok(Array.isArray(data.dirs), 'dirs should be an array');
+    });
+  });
 });

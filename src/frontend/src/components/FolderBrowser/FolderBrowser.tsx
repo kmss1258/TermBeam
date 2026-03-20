@@ -11,6 +11,7 @@ interface FolderBrowserProps {
 export function FolderBrowser({ currentDir = '/', onSelect, onCancel }: FolderBrowserProps) {
   const [dir, setDir] = useState(currentDir);
   const [dirs, setDirs] = useState<string[]>([]);
+  const [truncated, setTruncated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -21,6 +22,7 @@ export function FolderBrowser({ currentDir = '/', onSelect, onCancel }: FolderBr
       const result = await browseDirectory(path);
       setDir(result.base);
       setDirs([...result.dirs].sort((a, b) => a.localeCompare(b)));
+      setTruncated(result.truncated === true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load directory');
     } finally {
@@ -80,6 +82,11 @@ export function FolderBrowser({ currentDir = '/', onSelect, onCancel }: FolderBr
             );
           })}
           {dirs.length === 0 && <div className={styles.loading}>Empty directory</div>}
+          {truncated && (
+            <div className={styles.loading}>
+              Showing first 500 of many directories. Type a path to narrow results.
+            </div>
+          )}
         </div>
       )}
 

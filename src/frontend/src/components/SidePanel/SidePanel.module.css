@@ -271,6 +271,46 @@
   border-top: 1px solid var(--border);
 }
 
+.footerRow {
+  display: flex;
+  gap: 6px;
+}
+
+.footerBtn {
+  flex: 1;
+  padding: 10px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  background: none;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.footerBtn:hover {
+  background: var(--bg);
+}
+
+.footerBtn:active {
+  transform: scale(0.98);
+}
+
+.footerBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.footerBtn:disabled:hover {
+  background: none;
+}
+
 .newBtn {
   width: 100%;
   padding: 10px;

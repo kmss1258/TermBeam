@@ -4,6 +4,7 @@ import type { ManagedSession } from '@/stores/sessionStore';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useUIStore } from '@/stores/uiStore';
 import { fetchVersion, deleteSession } from '@/services/api';
+import { FileBrowser } from '@/components/FileBrowser/FileBrowser';
 import styles from './SidePanel.module.css';
 
 function getTerminalPreview(term: Terminal | null): string {
@@ -86,6 +87,7 @@ export function SidePanel() {
 
   const [closing, setClosing] = useState(false);
   const [version, setVersion] = useState('');
+  const [showFiles, setShowFiles] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
   const animateClose = useCallback(() => {
@@ -117,6 +119,8 @@ export function SidePanel() {
   const orderedSessions = tabOrder
     .map((id) => sessions.get(id))
     .filter((s): s is NonNullable<typeof s> => s != null);
+
+  const activeSession = activeId ? sessions.get(activeId) : undefined;
 
   const selectSession = (id: string) => {
     setActiveId(id);
@@ -170,105 +174,135 @@ export function SidePanel() {
           </button>
         </div>
 
-        {/* Section title */}
-        <div className={styles.sectionTitle}>Sessions</div>
+        {showFiles && activeId && activeSession?.cwd ? (
+          <FileBrowser
+            sessionId={activeId}
+            rootDir={activeSession.cwd}
+            onClose={() => setShowFiles(false)}
+          />
+        ) : (
+          <>
+            {/* Section title */}
+            <div className={styles.sectionTitle}>Sessions</div>
 
-        {/* Session list */}
-        <div className={styles.list} data-testid="side-panel-list">
-          {orderedSessions.map((session) => {
-            const preview = getTerminalPreview(session.term);
-            const activity = getActivityLabel(session.lastActivity);
-            const git = session.git;
+            {/* Session list */}
+            <div className={styles.list} data-testid="side-panel-list">
+              {orderedSessions.map((session) => {
+                const preview = getTerminalPreview(session.term);
+                const activity = getActivityLabel(session.lastActivity);
+                const git = session.git;
 
-            return (
-              <div
-                key={session.id}
-                className={`${styles.card} ${session.id === activeId ? styles.cardActive : ''}`}
-                data-testid="side-panel-card"
-                onClick={() => selectSession(session.id)}
-                onAuxClick={(e) => {
-                  if (e.button === 1) {
-                    e.preventDefault();
-                    if (confirm('Close this session?')) {
-                      deleteSession(session.id).catch(() => {});
-                      removeSession(session.id);
-                    }
-                  }
-                }}
-              >
-                {/* Card header: color dot, name, status, close */}
-                <div className={styles.cardHeader}>
-                  <span className={styles.cardDot} style={{ backgroundColor: session.color }} />
-                  <span className={styles.cardName}>{session.name}</span>
-                  {session.id !== activeId && session.hasUnread && (
-                    <span className={styles.unreadDot} />
-                  )}
-                  <span
-                    className={styles.cardStatus}
-                    style={{ backgroundColor: statusColor(session) }}
-                    title={
-                      session.exited ? 'Exited' : session.connected ? 'Connected' : 'Disconnected'
-                    }
-                  />
-                  <button
-                    className={styles.cardClose}
-                    onClick={(e) => handleClose(e, session.id)}
-                    title="Close session"
+                return (
+                  <div
+                    key={session.id}
+                    className={`${styles.card} ${session.id === activeId ? styles.cardActive : ''}`}
+                    data-testid="side-panel-card"
+                    onClick={() => selectSession(session.id)}
+                    onAuxClick={(e) => {
+                      if (e.button === 1) {
+                        e.preventDefault();
+                        if (confirm('Close this session?')) {
+                          deleteSession(session.id).catch(() => {});
+                          removeSession(session.id);
+                        }
+                      }
+                    }}
                   >
-                    ×
-                  </button>
-                </div>
-
-                {/* Meta: shell + cwd + activity */}
-                <div className={styles.cardMeta}>
-                  {session.shell}
-                  {session.cwd ? ` · ${truncatePath(session.cwd)}` : ''}
-                  {activity ? ` · ${activity}` : ''}
-                </div>
-
-                {/* Git info badges */}
-                {git && (
-                  <div className={styles.cardGit}>
-                    <span className={styles.gitBadge}>
-                      <BranchIcon /> {git.branch || 'detached'}
-                    </span>
-                    {git.provider && <span className={styles.gitBadge}>{git.provider}</span>}
-                    {git.repoName && <span className={styles.gitBadge}>{git.repoName}</span>}
-                    {git.status && (
+                    {/* Card header: color dot, name, status, close */}
+                    <div className={styles.cardHeader}>
+                      <span className={styles.cardDot} style={{ backgroundColor: session.color }} />
+                      <span className={styles.cardName}>{session.name}</span>
+                      {session.id !== activeId && session.hasUnread && (
+                        <span className={styles.unreadDot} />
+                      )}
                       <span
-                        className={`${styles.gitBadge} ${git.status.clean ? styles.gitClean : styles.gitDirty}`}
+                        className={styles.cardStatus}
+                        style={{ backgroundColor: statusColor(session) }}
+                        title={
+                          session.exited
+                            ? 'Exited'
+                            : session.connected
+                              ? 'Connected'
+                              : 'Disconnected'
+                        }
+                      />
+                      <button
+                        className={styles.cardClose}
+                        onClick={(e) => handleClose(e, session.id)}
+                        title="Close session"
                       >
-                        {git.status.clean ? '✓ clean' : git.status.summary}
-                      </span>
+                        ×
+                      </button>
+                    </div>
+
+                    {/* Meta: shell + cwd + activity */}
+                    <div className={styles.cardMeta}>
+                      {session.shell}
+                      {session.cwd ? ` · ${truncatePath(session.cwd)}` : ''}
+                      {activity ? ` · ${activity}` : ''}
+                    </div>
+
+                    {/* Git info badges */}
+                    {git && (
+                      <div className={styles.cardGit}>
+                        <span className={styles.gitBadge}>
+                          <BranchIcon /> {git.branch || 'detached'}
+                        </span>
+                        {git.provider && <span className={styles.gitBadge}>{git.provider}</span>}
+                        {git.repoName && <span className={styles.gitBadge}>{git.repoName}</span>}
+                        {git.status && (
+                          <span
+                            className={`${styles.gitBadge} ${git.status.clean ? styles.gitClean : styles.gitDirty}`}
+                          >
+                            {git.status.clean ? '✓ clean' : git.status.summary}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Terminal preview */}
+                    {preview ? (
+                      <div className={styles.cardPreview}>{preview}</div>
+                    ) : (
+                      <div className={`${styles.cardPreview} ${styles.cardPreviewEmpty}`}>
+                        No output yet
+                      </div>
                     )}
                   </div>
-                )}
+                );
+              })}
+            </div>
 
-                {/* Terminal preview */}
-                {preview ? (
-                  <div className={styles.cardPreview}>{preview}</div>
-                ) : (
-                  <div className={`${styles.cardPreview} ${styles.cardPreviewEmpty}`}>
-                    No output yet
-                  </div>
-                )}
+            {/* Footer */}
+            <div className={styles.footer}>
+              <div className={styles.footerRow}>
+                <button
+                  className={styles.footerBtn}
+                  onClick={() => {
+                    if (activeId && activeSession?.cwd) setShowFiles(true);
+                  }}
+                  disabled={!activeId || !activeSession?.cwd}
+                  title={
+                    !activeId || !activeSession?.cwd
+                      ? 'Select a session first'
+                      : 'Browse session files'
+                  }
+                >
+                  📂 Files
+                </button>
+                <button
+                  className={styles.footerBtn}
+                  onClick={() => {
+                    openNewSessionModal();
+                    animateClose();
+                  }}
+                >
+                  + New Session
+                </button>
               </div>
-            );
-          })}
-        </div>
-
-        {/* Footer: New Session */}
-        <div className={styles.footer}>
-          <button
-            className={styles.newBtn}
-            onClick={() => {
-              openNewSessionModal();
-              animateClose();
-            }}
-          >
-            + New Session
-          </button>
-        </div>
+            </div>
+          </>
+        )}
       </div>
     </>
   );

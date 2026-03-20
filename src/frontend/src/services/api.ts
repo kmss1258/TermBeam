@@ -90,6 +90,7 @@ export async function fetchShells(): Promise<{
 export interface BrowseDirsResponse {
   base: string;
   dirs: string[];
+  truncated?: boolean;
 }
 
 export async function browseDirectory(dir: string): Promise<BrowseDirsResponse> {
@@ -267,6 +268,48 @@ export function getShareUrl(): Promise<string> {
       }
     })
     .catch(() => window.location.href);
+}
+
+export interface FileEntry {
+  name: string;
+  type: 'file' | 'directory';
+  size: number;
+  modified: string;
+}
+
+export interface BrowseFilesResponse {
+  base: string;
+  rootDir: string;
+  entries: FileEntry[];
+}
+
+export async function browseFiles(sessionId: string, dir?: string): Promise<BrowseFilesResponse> {
+  const params = dir ? `?dir=${encodeURIComponent(dir)}` : '';
+  const res = await fetchWithTimeout(`${BASE}/api/sessions/${sessionId}/files${params}`, {
+    credentials: 'same-origin',
+  });
+  return handleResponse<BrowseFilesResponse>(res);
+}
+
+export async function fetchFileContent(
+  sessionId: string,
+  filePath: string,
+): Promise<{ content: string; name: string; size: number }> {
+  const res = await fetchWithTimeout(
+    `${BASE}/api/sessions/${sessionId}/file-content?file=${encodeURIComponent(filePath)}`,
+    { credentials: 'same-origin' },
+  );
+  return handleResponse<{ content: string; name: string; size: number }>(res);
+}
+
+export function downloadFile(sessionId: string, filePath: string): void {
+  const url = `${BASE}/api/sessions/${sessionId}/download?file=${encodeURIComponent(filePath)}`;
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 
 /** Ask the service worker to purge non-precache caches (e.g. stale navigation HTML). */
