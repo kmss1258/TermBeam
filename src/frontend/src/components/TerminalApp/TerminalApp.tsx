@@ -41,12 +41,13 @@ export function TerminalApp() {
   const openSidePanel = useUIStore((s) => s.openSidePanel);
   const openNewSessionModal = useUIStore((s) => s.openNewSessionModal);
   const fontSize = useUIStore((s) => s.fontSize);
+  const showDownload = useUIStore((s) => s.downloadModalOpen);
+  const closeDownloadModal = useUIStore((s) => s.closeDownloadModal);
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const initializedRef = useRef(false);
   const pollFailuresRef = useRef(0);
   const [connectionLost, setConnectionLost] = useState(false);
-  const [showDownload, setShowDownload] = useState(false);
 
   useWakeLock();
 
@@ -255,7 +256,7 @@ export function TerminalApp() {
       if (e.key === 'Escape') {
         if (showDownload) {
           e.preventDefault();
-          setShowDownload(false);
+          closeDownloadModal();
           return;
         }
         const state = useUIStore.getState();
@@ -391,36 +392,6 @@ export function TerminalApp() {
           </button>
           <button
             className={styles.barBtn}
-            data-testid="download-btn"
-            onClick={() => {
-              if (activeId && activeSession?.cwd) setShowDownload(true);
-            }}
-            onTouchStart={(e) => e.stopPropagation()}
-            disabled={!activeId || !activeSession?.cwd}
-            aria-label="Download file"
-            title={
-              !activeId || !activeSession?.cwd
-                ? 'Select a session first'
-                : 'Download a file'
-            }
-          >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-              <polyline points="9 14 12 17 15 14" />
-              <line x1="12" y1="11" x2="12" y2="17" />
-            </svg>
-          </button>
-          <button
-            className={styles.barBtn}
             onClick={toggleCommandPalette}
             onTouchStart={(e) => e.stopPropagation()}
             aria-label="Tools"
@@ -500,12 +471,12 @@ export function TerminalApp() {
 
       {/* ── Download file browser overlay ── */}
       {showDownload && activeId && activeSession?.cwd && (
-        <div className={styles.downloadOverlay} onClick={() => setShowDownload(false)}>
+        <div className={styles.downloadOverlay} onClick={closeDownloadModal}>
           <div className={styles.downloadPanel} onClick={(e) => e.stopPropagation()}>
             <FileBrowser
               sessionId={activeId}
               rootDir={activeSession.cwd}
-              onClose={() => setShowDownload(false)}
+              onClose={closeDownloadModal}
             />
           </div>
         </div>

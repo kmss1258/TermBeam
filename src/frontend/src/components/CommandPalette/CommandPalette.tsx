@@ -41,6 +41,21 @@ const iconUpload = (
   </svg>
 );
 
+const iconDownload = (
+  <svg
+    viewBox="0 0 16 16"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M2 10v3a1 1 0 001 1h10a1 1 0 001-1v-3" />
+    <polyline points="5 11 8 14 11 11" />
+    <line x1="8" y1="14" x2="8" y2="6" />
+  </svg>
+);
+
 const iconCloseTab = (
   <svg
     viewBox="0 0 16 16"
@@ -436,6 +451,12 @@ export default function CommandPalette() {
           label: 'Upload files',
           icon: iconUpload,
           action: () => run(() => useUIStore.getState().openUploadModal()),
+        },
+        {
+          id: 'download',
+          label: 'Download file',
+          icon: iconDownload,
+          action: () => run(() => useUIStore.getState().openDownloadModal()),
         },
         {
           id: 'close-tab',
