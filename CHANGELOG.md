@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.15.1] - 2026-03-20
+
+- fix(e2e): update split view test for cycling labels
+- test(split): add unit tests for split mode cycling logic
+- feat(split): cycle split orientation and add pane focus indicator (#149)
+- fix(test): add --test-timeout=60s to prevent Windows CI hangs
+- perf(test): speed up Windows E2E by removing redundant waits
+- fix(test): resolve Windows CI EBUSY errors in routes test cleanup
+
 ## [1.15.0] - 2026-03-20
 
 - test: add coverage for file endpoint security features
