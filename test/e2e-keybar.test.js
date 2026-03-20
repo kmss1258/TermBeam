@@ -611,8 +611,8 @@ test.describe('Command Palette — Split View', () => {
       .count();
     expect(initialPanes).toBe(1);
 
-    // Toggle split via palette
-    await openPaletteAndClick(page, 'Split view');
+    // Toggle split vertical via palette
+    await openPaletteAndClick(page, 'Split vertical');
     await expect(async () => {
       const afterPanes = await page
         .locator('[data-testid="terminal-pane"][data-visible="true"]')
@@ -625,8 +625,16 @@ test.describe('Command Palette — Split View', () => {
     await runCommand(page, `echo ${marker}`);
     await waitForTerminalOutput(page, marker);
 
-    // Toggle split off via palette
-    await openPaletteAndClick(page, 'Split view');
+    // Cycle through horizontal split then off
+    await openPaletteAndClick(page, 'Split horizontal');
+    await expect(async () => {
+      const hPanes = await page
+        .locator('[data-testid="terminal-pane"][data-visible="true"]')
+        .count();
+      expect(hPanes).toBe(2);
+    }).toPass({ timeout: 5_000 });
+
+    await openPaletteAndClick(page, 'Close split');
     const finalPanes = await page
       .locator('[data-testid="terminal-pane"][data-visible="true"]')
       .count();
