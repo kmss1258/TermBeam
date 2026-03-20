@@ -1781,4 +1781,307 @@ describe('Routes', () => {
       assert.ok(Array.isArray(data.dirs), 'dirs should be an array');
     });
   });
+
+  // === Query param type validation ===
+  describe('Query param type validation', () => {
+    let inst;
+    let tmpDir;
+    after(() => {
+      inst?.shutdown();
+      if (tmpDir) fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    async function setup() {
+      if (inst) return;
+      tmpDir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'tb-qparam-'));
+      fs.writeFileSync(path.join(tmpDir, 'test.txt'), 'hello');
+      inst = await startServer({ cwd: tmpDir });
+    }
+
+    it('should return 400 when /files dir param is an array', async () => {
+      await setup();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: `/api/sessions/${inst.defaultId}/files?dir=a&dir=b`,
+        method: 'GET',
+      });
+      assert.strictEqual(res.statusCode, 400);
+      const data = JSON.parse(res.data);
+      assert.strictEqual(data.error, 'Invalid dir parameter');
+    });
+
+    it('should return 400 when /download file param is an array', async () => {
+      await setup();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: `/api/sessions/${inst.defaultId}/download?file=a&file=b`,
+        method: 'GET',
+      });
+      assert.strictEqual(res.statusCode, 400);
+      const data = JSON.parse(res.data);
+      assert.strictEqual(data.error, 'Missing file parameter');
+    });
+
+    it('should return 400 when /file-raw file param is an array', async () => {
+      await setup();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: `/api/sessions/${inst.defaultId}/file-raw?file=a&file=b`,
+        method: 'GET',
+      });
+      assert.strictEqual(res.statusCode, 400);
+      const data = JSON.parse(res.data);
+      assert.strictEqual(data.error, 'Missing file parameter');
+    });
+
+    it('should return 400 when /file-content file param is an array', async () => {
+      await setup();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: `/api/sessions/${inst.defaultId}/file-content?file=a&file=b`,
+        method: 'GET',
+      });
+      assert.strictEqual(res.statusCode, 400);
+      const data = JSON.parse(res.data);
+      assert.strictEqual(data.error, 'Missing file parameter');
+    });
+  });
+
+  // === Symlink rejection ===
+  describe('Symlink rejection', () => {
+    let inst;
+    let tmpDir;
+    after(() => {
+      inst?.shutdown();
+      if (tmpDir) fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    async function setup() {
+      if (inst) return;
+      tmpDir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'tb-symlink-'));
+      fs.writeFileSync(path.join(tmpDir, 'real.txt'), 'real content');
+      fs.symlinkSync(path.join(tmpDir, 'real.txt'), path.join(tmpDir, 'link.txt'));
+      inst = await startServer({ cwd: tmpDir });
+    }
+
+    it('should reject symlink in /download with 403', async () => {
+      await setup();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: `/api/sessions/${inst.defaultId}/download?file=link.txt`,
+        method: 'GET',
+      });
+      assert.strictEqual(res.statusCode, 403);
+      const data = JSON.parse(res.data);
+      assert.strictEqual(data.error, 'Symbolic links are not allowed');
+    });
+
+    it('should reject symlink in /file-raw with 403', async () => {
+      await setup();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: `/api/sessions/${inst.defaultId}/file-raw?file=link.txt`,
+        method: 'GET',
+      });
+      assert.strictEqual(res.statusCode, 403);
+      const data = JSON.parse(res.data);
+      assert.strictEqual(data.error, 'Symbolic links are not allowed');
+    });
+
+    it('should reject symlink in /file-content with 403', async () => {
+      await setup();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: `/api/sessions/${inst.defaultId}/file-content?file=link.txt`,
+        method: 'GET',
+      });
+      assert.strictEqual(res.statusCode, 403);
+      const data = JSON.parse(res.data);
+      assert.strictEqual(data.error, 'Symbolic links are not allowed');
+    });
+
+    it('should filter symlinks from /files listing', async () => {
+      await setup();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: `/api/sessions/${inst.defaultId}/files`,
+        method: 'GET',
+      });
+      assert.strictEqual(res.statusCode, 200);
+      const data = JSON.parse(res.data);
+      const names = data.entries.map((e) => e.name);
+      assert.ok(names.includes('real.txt'), 'should include real file');
+      assert.ok(!names.includes('link.txt'), 'should not include symlink');
+    });
+  });
+
+  // === Entry limit + truncated flag ===
+  describe('/files truncated flag', () => {
+    let inst;
+    let tmpDir;
+    after(() => {
+      inst?.shutdown();
+      if (tmpDir) fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    async function setup() {
+      if (inst) return;
+      tmpDir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'tb-trunc-'));
+      fs.writeFileSync(path.join(tmpDir, 'a.txt'), 'a');
+      fs.writeFileSync(path.join(tmpDir, 'b.txt'), 'b');
+      inst = await startServer({ cwd: tmpDir });
+    }
+
+    it('should include truncated: false for small directories', async () => {
+      await setup();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: `/api/sessions/${inst.defaultId}/files`,
+        method: 'GET',
+      });
+      assert.strictEqual(res.statusCode, 200);
+      const data = JSON.parse(res.data);
+      assert.ok('truncated' in data, 'Response should have a truncated field');
+      assert.strictEqual(data.truncated, false);
+    });
+
+    it('should include base and rootDir in /files response', async () => {
+      await setup();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: `/api/sessions/${inst.defaultId}/files`,
+        method: 'GET',
+      });
+      assert.strictEqual(res.statusCode, 200);
+      const data = JSON.parse(res.data);
+      assert.ok('base' in data, 'Response should have a base field');
+      assert.ok('rootDir' in data, 'Response should have a rootDir field');
+      assert.ok('entries' in data, 'Response should have entries field');
+      assert.ok('truncated' in data, 'Response should have truncated field');
+    });
+  });
+
+  // === /api/sessions/:id/file-raw endpoint ===
+  describe('GET /api/sessions/:id/file-raw', () => {
+    let inst;
+    let tmpDir;
+    after(() => {
+      inst?.shutdown();
+      if (tmpDir) fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    async function setup() {
+      if (inst) return;
+      tmpDir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'tb-fileraw-'));
+      fs.writeFileSync(path.join(tmpDir, 'hello.txt'), 'hello raw');
+      fs.mkdirSync(path.join(tmpDir, 'adir'));
+      inst = await startServer({ cwd: tmpDir });
+    }
+
+    it('should return file content inline (no Content-Disposition: attachment)', async () => {
+      await setup();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: `/api/sessions/${inst.defaultId}/file-raw?file=hello.txt`,
+        method: 'GET',
+      });
+      assert.strictEqual(res.statusCode, 200);
+      assert.strictEqual(res.data, 'hello raw');
+      const cd = res.headers['content-disposition'];
+      assert.ok(!cd || !cd.includes('attachment'), 'should not have attachment disposition');
+    });
+
+    it('should return 404 for non-existent file', async () => {
+      await setup();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: `/api/sessions/${inst.defaultId}/file-raw?file=no-such-file.txt`,
+        method: 'GET',
+      });
+      assert.strictEqual(res.statusCode, 404);
+      const data = JSON.parse(res.data);
+      assert.strictEqual(data.error, 'File not found');
+    });
+
+    it('should return 400 for missing file parameter', async () => {
+      await setup();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: `/api/sessions/${inst.defaultId}/file-raw`,
+        method: 'GET',
+      });
+      assert.strictEqual(res.statusCode, 400);
+      const data = JSON.parse(res.data);
+      assert.strictEqual(data.error, 'Missing file parameter');
+    });
+
+    it('should return 400 for directory (not a file)', async () => {
+      await setup();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: `/api/sessions/${inst.defaultId}/file-raw?file=adir`,
+        method: 'GET',
+      });
+      assert.strictEqual(res.statusCode, 400);
+      const data = JSON.parse(res.data);
+      assert.strictEqual(data.error, 'Not a regular file');
+    });
+
+    it('should return 404 for invalid session id', async () => {
+      await setup();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: '/api/sessions/nonexistent/file-raw?file=hello.txt',
+        method: 'GET',
+      });
+      assert.strictEqual(res.statusCode, 404);
+      const data = JSON.parse(res.data);
+      assert.strictEqual(data.error, 'Session not found');
+    });
+  });
+
+  // === Generic error message for /files ===
+  describe('/files generic error message', () => {
+    let inst;
+    let tmpDir;
+    after(() => {
+      inst?.shutdown();
+      if (tmpDir) fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    async function setup() {
+      if (inst) return;
+      tmpDir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'tb-generr-'));
+      inst = await startServer({ cwd: tmpDir });
+    }
+
+    it('should return generic error for non-existent directory', async () => {
+      await setup();
+      const badDir = path.join(tmpDir, 'does-not-exist');
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: `/api/sessions/${inst.defaultId}/files?dir=${encodeURIComponent(badDir)}`,
+        method: 'GET',
+      });
+      assert.strictEqual(res.statusCode, 500);
+      const data = JSON.parse(res.data);
+      assert.strictEqual(data.error, 'Failed to read directory');
+    });
+  });
 });
