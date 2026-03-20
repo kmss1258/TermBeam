@@ -37,6 +37,8 @@ Built for developers who need quick remote terminal access without the hassle of
 - **Terminal search** — <kbd>Ctrl+F</kbd> / <kbd>Cmd+F</kbd> with regex support
 - **Command palette** — <kbd>Ctrl+K</kbd> / <kbd>Cmd+K</kbd> for quick access to all actions
 - **File upload** — send files from your phone to the session's working directory via the command palette
+- **File browser & download** — browse files in a session's working directory from the side panel and download them to your device
+- **Markdown viewer** — preview `.md` files rendered with GitHub Flavored Markdown directly in the browser
 - **Command completion notifications** — browser alerts when commands finish in background tabs
 - **30 color themes** (dark, light, monokai, nord, dracula…) with adjustable font size
 - **Port preview** — reverse-proxy a local web server through TermBeam

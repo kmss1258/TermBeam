@@ -47,6 +47,33 @@ Once you've [started TermBeam](getting-started.md) and connected from your devic
 - Files exceeding 10 MB are flagged and cannot be uploaded
 - After upload, a toast notification confirms the count and destination
 
+### File Browser
+
+The file browser lets you browse and download files from a session's working directory directly in the browser — useful for pulling logs, configs, or build artifacts to your phone or laptop.
+
+1. Open the **side panel** (hamburger menu or swipe from left)
+2. Tap **📂 Files** in the footer — the panel switches to show the active session's files
+3. Navigate into subdirectories by tapping folder entries
+4. Tap the **⬇️** button next to any file to download it
+5. Use the **breadcrumb bar** at the top to jump back to parent directories
+6. Tap **←** to return to the sessions list
+
+!!! note
+Browsing is restricted to the session's working directory and its subdirectories — you cannot navigate above it. Files up to 100 MB can be downloaded. Hidden files (starting with `.`) are not shown.
+
+### Markdown Viewer
+
+Markdown files (`.md`, `.markdown`) can be previewed directly in the file browser without downloading them.
+
+1. Open the **file browser** (see above)
+2. Navigate to a directory containing markdown files — they appear with a **👁️** icon
+3. Tap the file name to open the rendered preview
+4. The viewer supports **GitHub Flavored Markdown**: tables, task lists, strikethrough, fenced code blocks, and more
+5. Tap **←** to return to the file listing
+
+!!! note
+The viewer loads files up to 2 MB. For larger files, use the download button instead.
+
 ### Notifications
 
 - Open the **command palette** (<kbd>Ctrl+K</kbd> / <kbd>Cmd+K</kbd>) and select **Toggle notifications** to enable **command completion notifications**

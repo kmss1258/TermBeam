@@ -216,6 +216,186 @@ Kill and remove a session.
 { "error": "not found" }
 ```
 
+### File Operations
+
+#### `GET /api/sessions/:id/files`
+
+Browse files and directories within a session's working directory.
+
+**Query parameters:**
+
+| Parameter | Type   | Description                                                 |
+| --------- | ------ | ----------------------------------------------------------- |
+| `dir`     | string | Subdirectory path relative to session CWD. Defaults to `.`. |
+
+**Response (200):**
+
+```json
+{
+  "base": "/home/user/project/src",
+  "rootDir": "/home/user/project",
+  "entries": [
+    {
+      "name": "components",
+      "type": "directory",
+      "size": 0,
+      "modified": "2024-01-15T10:30:00.000Z"
+    },
+    { "name": "index.ts", "type": "file", "size": 1234, "modified": "2024-01-15T10:30:00.000Z" }
+  ]
+}
+```
+
+| Field     | Type   | Description                                      |
+| --------- | ------ | ------------------------------------------------ |
+| `base`    | string | Absolute path to the listed directory            |
+| `rootDir` | string | Absolute path to the session's working directory |
+| `entries` | array  | Files and directories in the listed path         |
+
+Each entry contains `name` (string), `type` (`"file"` or `"directory"`), `size` (number, bytes), and `modified` (ISO 8601 timestamp).
+
+Entries are sorted directories-first, then files alphabetically. Hidden files (starting with `.`) are excluded. Browsing is constrained to the session's CWD — paths outside it are rejected.
+
+**Response (401):**
+
+```json
+{ "error": "unauthorized" }
+```
+
+**Response (403):**
+
+```json
+{ "error": "Access denied" }
+```
+
+Returned when the requested path resolves outside the session's working directory.
+
+**Response (404):**
+
+```json
+{ "error": "not found" }
+```
+
+---
+
+#### `GET /api/sessions/:id/download`
+
+Download a file from within a session's working directory.
+
+**Query parameters:**
+
+| Parameter | Type   | Description                                   |
+| --------- | ------ | --------------------------------------------- |
+| `file`    | string | File path relative to session CWD (required). |
+
+**Response:** Binary file content with `Content-Disposition: attachment` header.
+
+**Response (400):**
+
+```json
+{ "error": "Missing file parameter" }
+```
+
+```json
+{ "error": "Not a file" }
+```
+
+**Response (401):**
+
+```json
+{ "error": "unauthorized" }
+```
+
+**Response (403):**
+
+```json
+{ "error": "Access denied" }
+```
+
+Returned when the requested path resolves outside the session's working directory.
+
+**Response (404):**
+
+```json
+{ "error": "not found" }
+```
+
+**Response (413):**
+
+```json
+{ "error": "File too large" }
+```
+
+Maximum downloadable file size is 100 MB.
+
+---
+
+#### `GET /api/sessions/:id/file-content`
+
+Get the text content of a file. Used for in-browser file preview (e.g., markdown rendering).
+
+**Query parameters:**
+
+| Parameter | Type   | Description                                   |
+| --------- | ------ | --------------------------------------------- |
+| `file`    | string | File path relative to session CWD (required). |
+
+**Response (200):**
+
+```json
+{
+  "content": "# Hello World\n\nThis is a markdown file.",
+  "name": "README.md",
+  "size": 42
+}
+```
+
+| Field     | Type   | Description                    |
+| --------- | ------ | ------------------------------ |
+| `content` | string | UTF-8 text content of the file |
+| `name`    | string | Filename (basename)            |
+| `size`    | number | File size in bytes             |
+
+**Response (400):**
+
+```json
+{ "error": "Missing file parameter" }
+```
+
+```json
+{ "error": "Not a file" }
+```
+
+**Response (401):**
+
+```json
+{ "error": "unauthorized" }
+```
+
+**Response (403):**
+
+```json
+{ "error": "Access denied" }
+```
+
+Returned when the requested path resolves outside the session's working directory.
+
+**Response (404):**
+
+```json
+{ "error": "not found" }
+```
+
+**Response (413):**
+
+```json
+{ "error": "File too large" }
+```
+
+Maximum file size for content reading is 2 MB.
+
+---
+
 #### `GET /api/shells`
 
 List available shells on the host system.
@@ -331,9 +511,16 @@ List subdirectories for the folder browser.
 ```json
 {
   "base": "/home/user",
-  "dirs": ["/home/user/projects", "/home/user/documents"]
+  "dirs": ["/home/user/projects", "/home/user/documents"],
+  "truncated": false
 }
 ```
+
+| Field       | Type    | Description                                             |
+| ----------- | ------- | ------------------------------------------------------- |
+| `base`      | string  | Absolute path that was listed                           |
+| `dirs`      | array   | Absolute paths of subdirectories                        |
+| `truncated` | boolean | `true` when results were cut off at the 500-entry limit |
 
 #### `POST /api/upload`
 
