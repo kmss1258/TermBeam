@@ -90,14 +90,28 @@ export function useContentPinchZoom(
     function onTouchMove(e: TouchEvent) {
       const t0 = e.touches[0];
       const t1 = e.touches[1];
-      if (e.touches.length === 2 && t0 && t1 && isPinchingRef.current) {
+      if (e.touches.length === 2 && t0 && t1 && isPinchingRef.current && container) {
         e.preventDefault();
         const dist = getDistance(t0, t1);
-        const raw = startScaleRef.current * (dist / startDistRef.current);
-        const newScale = Math.min(5, Math.max(1, raw));
+        const oldScale = scaleRef.current;
+        const newScale = Math.min(5, Math.max(1, startScaleRef.current * (dist / startDistRef.current)));
+
+        // Pinch midpoint relative to the container viewport
+        const rect = container.getBoundingClientRect();
+        const midX = (t0.clientX + t1.clientX) / 2 - rect.left;
+        const midY = (t0.clientY + t1.clientY) / 2 - rect.top;
+
+        // Content coordinate under the pinch midpoint (at old scale)
+        const contentX = (container.scrollLeft + midX) / oldScale;
+        const contentY = (container.scrollTop + midY) / oldScale;
+
         scaleRef.current = newScale;
         setScale(newScale);
         applyZoom(newScale);
+
+        // Scroll so the same content point stays under the pinch midpoint
+        container.scrollLeft = contentX * newScale - midX;
+        container.scrollTop = contentY * newScale - midY;
       }
     }
 
