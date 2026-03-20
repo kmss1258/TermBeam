@@ -237,3 +237,48 @@
     bottom: calc(env(safe-area-inset-bottom, 0px) + var(--keyboard-height, 0px));
   }
 }
+
+/* ── Download file browser overlay ── */
+.downloadOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: var(--overlay-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: downloadFadeIn 0.2s ease-out;
+}
+
+.downloadPanel {
+  width: min(90vw, 420px);
+  max-height: 80vh;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: downloadSlideUp 0.25s ease-out;
+}
+
+@keyframes downloadFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes downloadSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

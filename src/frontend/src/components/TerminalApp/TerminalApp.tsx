@@ -11,6 +11,7 @@ import TouchBar from '@/components/TouchBar/TouchBar';
 import SearchBar from '@/components/SearchBar/SearchBar';
 import CommandPalette from '@/components/CommandPalette/CommandPalette';
 import { SidePanel } from '@/components/SidePanel/SidePanel';
+import { FileBrowser } from '@/components/FileBrowser/FileBrowser';
 import NewSessionModal from '@/components/SessionsHub/NewSessionModal';
 import { UploadModal } from '@/components/Modals/UploadModal';
 import { PreviewModal } from '@/components/Modals/PreviewModal';
@@ -45,6 +46,7 @@ export function TerminalApp() {
   const initializedRef = useRef(false);
   const pollFailuresRef = useRef(0);
   const [connectionLost, setConnectionLost] = useState(false);
+  const [showDownload, setShowDownload] = useState(false);
 
   useWakeLock();
 
@@ -251,6 +253,11 @@ export function TerminalApp() {
         openSearchBar();
       }
       if (e.key === 'Escape') {
+        if (showDownload) {
+          e.preventDefault();
+          setShowDownload(false);
+          return;
+        }
         const state = useUIStore.getState();
         if (state.commandPaletteOpen) {
           e.preventDefault();
@@ -263,7 +270,7 @@ export function TerminalApp() {
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [toggleCommandPalette, openSearchBar, closeCommandPalette, closeSearchBar]);
+  }, [toggleCommandPalette, openSearchBar, closeCommandPalette, closeSearchBar, showDownload]);
 
   const activeSession = activeId ? sessions.get(activeId) : null;
 
@@ -384,6 +391,36 @@ export function TerminalApp() {
           </button>
           <button
             className={styles.barBtn}
+            data-testid="download-btn"
+            onClick={() => {
+              if (activeId && activeSession?.cwd) setShowDownload(true);
+            }}
+            onTouchStart={(e) => e.stopPropagation()}
+            disabled={!activeId || !activeSession?.cwd}
+            aria-label="Download file"
+            title={
+              !activeId || !activeSession?.cwd
+                ? 'Select a session first'
+                : 'Download a file'
+            }
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+              <polyline points="9 14 12 17 15 14" />
+              <line x1="12" y1="11" x2="12" y2="17" />
+            </svg>
+          </button>
+          <button
+            className={styles.barBtn}
             onClick={toggleCommandPalette}
             onTouchStart={(e) => e.stopPropagation()}
             aria-label="Tools"
@@ -460,6 +497,19 @@ export function TerminalApp() {
       <UploadModal />
       <PreviewModal />
       <CopyOverlay />
+
+      {/* ── Download file browser overlay ── */}
+      {showDownload && activeId && activeSession?.cwd && (
+        <div className={styles.downloadOverlay} onClick={() => setShowDownload(false)}>
+          <div className={styles.downloadPanel} onClick={(e) => e.stopPropagation()}>
+            <FileBrowser
+              sessionId={activeId}
+              rootDir={activeSession.cwd}
+              onClose={() => setShowDownload(false)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
