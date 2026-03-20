@@ -274,7 +274,7 @@ export interface FileEntry {
   name: string;
   type: 'file' | 'directory';
   size: number;
-  modified: string;
+  modified: string | null;
 }
 
 export interface BrowseFilesResponse {

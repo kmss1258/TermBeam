@@ -90,7 +90,7 @@ export function MarkdownViewer({
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <button className={styles.backBtn} onClick={onClose} title="Back to files">
+        <button className={styles.backBtn} onClick={onClose} title="Back to files" aria-label="Back to files">
           ←
         </button>
         <span className={styles.fileName}>📄 {fileName}</span>

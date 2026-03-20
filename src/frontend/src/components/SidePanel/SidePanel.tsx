@@ -92,6 +92,7 @@ export function SidePanel() {
 
   const animateClose = useCallback(() => {
     setClosing(true);
+    setShowFiles(false);
     setTimeout(() => {
       setClosing(false);
       closeSidePanel();

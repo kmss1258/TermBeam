@@ -465,16 +465,28 @@ function setupRoutes(app, { auth, sessions, config, state }) {
 
   // Browse files and directories within a session's CWD
   app.get('/api/sessions/:id/files', apiRateLimit, auth.middleware, (req, res) => {
-    const session = sessions.sessions.get(req.params.id);
+    const session = sessions.get(req.params.id);
     if (!session) return res.status(404).json({ error: 'Session not found' });
+
+    if (req.query.dir !== undefined && typeof req.query.dir !== 'string') {
+      return res.status(400).json({ error: 'Invalid dir parameter' });
+    }
 
     const rootDir = path.resolve(session.cwd);
     const dir = path.resolve(rootDir, req.query.dir || '.');
 
+    const MAX_ENTRIES = 1000;
     try {
       const dirents = fs.readdirSync(dir, { withFileTypes: true });
-      const entries = dirents
-        .filter((e) => !e.name.startsWith('.'))
+      let entries = dirents
+        .filter((e) => {
+          if (e.name.startsWith('.')) return false;
+          try {
+            return !fs.lstatSync(path.join(dir, e.name)).isSymbolicLink();
+          } catch {
+            return false;
+          }
+        })
         .map((e) => {
           const fullPath = path.join(dir, e.name);
           const isDir = e.isDirectory();
@@ -495,25 +507,33 @@ function setupRoutes(app, { auth, sessions, config, state }) {
           return a.name.localeCompare(b.name);
         });
 
-      res.json({ base: dir, rootDir, entries });
+      const truncated = entries.length > MAX_ENTRIES;
+      entries = entries.slice(0, MAX_ENTRIES);
+
+      res.json({ base: dir, rootDir, entries, truncated });
     } catch (err) {
       log.warn(`File browse failed: ${err.message}`);
-      res.status(500).json({ error: err.message });
+      res.status(500).json({ error: 'Failed to read directory' });
     }
   });
 
   // Download a file from within a session's CWD
   app.get('/api/sessions/:id/download', apiRateLimit, auth.middleware, (req, res) => {
-    const session = sessions.sessions.get(req.params.id);
+    const session = sessions.get(req.params.id);
     if (!session) return res.status(404).json({ error: 'Session not found' });
 
     const file = req.query.file;
-    if (!file) return res.status(400).json({ error: 'Missing file parameter' });
+    if (!file || typeof file !== 'string') {
+      return res.status(400).json({ error: 'Missing file parameter' });
+    }
 
     const rootDir = path.resolve(session.cwd);
     const filePath = path.resolve(rootDir, file);
 
     try {
+      if (fs.lstatSync(filePath).isSymbolicLink()) {
+        return res.status(403).json({ error: 'Symbolic links are not allowed' });
+      }
       const stat = fs.statSync(filePath);
       if (!stat.isFile()) {
         return res.status(400).json({ error: 'Not a regular file' });
@@ -521,26 +541,30 @@ function setupRoutes(app, { auth, sessions, config, state }) {
       if (stat.size > 100 * 1024 * 1024) {
         return res.status(413).json({ error: 'File too large (max 100 MB)' });
       }
-    } catch (err) {
+    } catch {
       return res.status(404).json({ error: 'File not found' });
     }
 
-    res.setHeader('Content-Disposition', `attachment; filename="${path.basename(filePath)}"`);
-    res.sendFile(filePath);
+    res.download(filePath);
   });
 
   // Serve a file inline (for images in markdown viewer, etc.)
   app.get('/api/sessions/:id/file-raw', apiRateLimit, auth.middleware, (req, res) => {
-    const session = sessions.sessions.get(req.params.id);
+    const session = sessions.get(req.params.id);
     if (!session) return res.status(404).json({ error: 'Session not found' });
 
     const file = req.query.file;
-    if (!file) return res.status(400).json({ error: 'Missing file parameter' });
+    if (!file || typeof file !== 'string') {
+      return res.status(400).json({ error: 'Missing file parameter' });
+    }
 
     const rootDir = path.resolve(session.cwd);
     const filePath = path.resolve(rootDir, file);
 
     try {
+      if (fs.lstatSync(filePath).isSymbolicLink()) {
+        return res.status(403).json({ error: 'Symbolic links are not allowed' });
+      }
       const stat = fs.statSync(filePath);
       if (!stat.isFile()) {
         return res.status(400).json({ error: 'Not a regular file' });
@@ -548,7 +572,7 @@ function setupRoutes(app, { auth, sessions, config, state }) {
       if (stat.size > 20 * 1024 * 1024) {
         return res.status(413).json({ error: 'File too large (max 20 MB)' });
       }
-    } catch (err) {
+    } catch {
       return res.status(404).json({ error: 'File not found' });
     }
 
@@ -557,16 +581,21 @@ function setupRoutes(app, { auth, sessions, config, state }) {
 
   // Read file content as text (for markdown viewer, etc.)
   app.get('/api/sessions/:id/file-content', apiRateLimit, auth.middleware, (req, res) => {
-    const session = sessions.sessions.get(req.params.id);
+    const session = sessions.get(req.params.id);
     if (!session) return res.status(404).json({ error: 'Session not found' });
 
     const file = req.query.file;
-    if (!file) return res.status(400).json({ error: 'Missing file parameter' });
+    if (!file || typeof file !== 'string') {
+      return res.status(400).json({ error: 'Missing file parameter' });
+    }
 
     const rootDir = path.resolve(session.cwd);
     const filePath = path.resolve(rootDir, file);
 
     try {
+      if (fs.lstatSync(filePath).isSymbolicLink()) {
+        return res.status(403).json({ error: 'Symbolic links are not allowed' });
+      }
       const stat = fs.statSync(filePath);
       if (!stat.isFile()) {
         return res.status(400).json({ error: 'Not a regular file' });
@@ -576,7 +605,7 @@ function setupRoutes(app, { auth, sessions, config, state }) {
       }
       const content = fs.readFileSync(filePath, 'utf8');
       res.json({ content, name: path.basename(filePath), size: stat.size });
-    } catch (err) {
+    } catch {
       return res.status(404).json({ error: 'File not found' });
     }
   });

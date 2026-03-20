@@ -252,9 +252,15 @@ Browse files and directories within a session's working directory.
 | `rootDir` | string | Absolute path to the session's working directory |
 | `entries` | array  | Files and directories in the listed path         |
 
-Each entry contains `name` (string), `type` (`"file"` or `"directory"`), `size` (number, bytes), and `modified` (ISO 8601 timestamp).
+Each entry contains `name` (string), `type` (`"file"` or `"directory"`), `size` (number, bytes), and `modified` (string or null — ISO 8601 timestamp, or `null` if stat fails).
 
-Entries are sorted directories-first, then files alphabetically. Hidden files (starting with `.`) are excluded. Browsing is constrained to the session's CWD — paths outside it are rejected.
+Entries are sorted directories-first, then files alphabetically. Hidden files (starting with `.`) and symbolic links are excluded.
+
+**Response (400):**
+
+```json
+{ "error": "Invalid dir parameter" }
+```
 
 **Response (401):**
 
@@ -262,18 +268,16 @@ Entries are sorted directories-first, then files alphabetically. Hidden files (s
 { "error": "unauthorized" }
 ```
 
-**Response (403):**
-
-```json
-{ "error": "Access denied" }
-```
-
-Returned when the requested path resolves outside the session's working directory.
-
 **Response (404):**
 
 ```json
-{ "error": "not found" }
+{ "error": "Session not found" }
+```
+
+**Response (500):**
+
+```json
+{ "error": "Failed to read directory" }
 ```
 
 ---
@@ -297,7 +301,7 @@ Download a file from within a session's working directory.
 ```
 
 ```json
-{ "error": "Not a file" }
+{ "error": "Not a regular file" }
 ```
 
 **Response (401):**
@@ -309,24 +313,24 @@ Download a file from within a session's working directory.
 **Response (403):**
 
 ```json
-{ "error": "Access denied" }
+{ "error": "Symbolic links are not allowed" }
 ```
-
-Returned when the requested path resolves outside the session's working directory.
 
 **Response (404):**
 
 ```json
-{ "error": "not found" }
+{ "error": "Session not found" }
+```
+
+```json
+{ "error": "File not found" }
 ```
 
 **Response (413):**
 
 ```json
-{ "error": "File too large" }
+{ "error": "File too large (max 100 MB)" }
 ```
-
-Maximum downloadable file size is 100 MB.
 
 ---
 
@@ -363,7 +367,7 @@ Get the text content of a file. Used for in-browser file preview (e.g., markdown
 ```
 
 ```json
-{ "error": "Not a file" }
+{ "error": "Not a regular file" }
 ```
 
 **Response (401):**
@@ -375,24 +379,76 @@ Get the text content of a file. Used for in-browser file preview (e.g., markdown
 **Response (403):**
 
 ```json
-{ "error": "Access denied" }
+{ "error": "Symbolic links are not allowed" }
 ```
-
-Returned when the requested path resolves outside the session's working directory.
 
 **Response (404):**
 
 ```json
-{ "error": "not found" }
+{ "error": "Session not found" }
+```
+
+```json
+{ "error": "File not found" }
 ```
 
 **Response (413):**
 
 ```json
-{ "error": "File too large" }
+{ "error": "File too large (max 2 MB)" }
 ```
 
-Maximum file size for content reading is 2 MB.
+---
+
+#### `GET /api/sessions/:id/file-raw`
+
+Serve a file inline from a session's working directory. Unlike the `/download` endpoint, this does not set a `Content-Disposition: attachment` header, making it suitable for in-browser rendering (e.g., images).
+
+**Query parameters:**
+
+| Parameter | Type   | Description                                   |
+| --------- | ------ | --------------------------------------------- |
+| `file`    | string | File path relative to session CWD (required). |
+
+**Response:** File content served inline with the appropriate `Content-Type` header.
+
+**Response (400):**
+
+```json
+{ "error": "Missing file parameter" }
+```
+
+```json
+{ "error": "Not a regular file" }
+```
+
+**Response (401):**
+
+```json
+{ "error": "unauthorized" }
+```
+
+**Response (403):**
+
+```json
+{ "error": "Symbolic links are not allowed" }
+```
+
+**Response (404):**
+
+```json
+{ "error": "Session not found" }
+```
+
+```json
+{ "error": "File not found" }
+```
+
+**Response (413):**
+
+```json
+{ "error": "File too large (max 20 MB)" }
+```
 
 ---
 

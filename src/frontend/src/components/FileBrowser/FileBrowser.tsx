@@ -141,13 +141,16 @@ export function FileBrowser({ sessionId, rootDir, onClose }: FileBrowserProps) {
           {entries.map((entry) => (
             <div key={entry.name} className={styles.entry}>
               <span className={styles.entryIcon}>{entry.type === 'directory' ? '📁' : '📄'}</span>
-              <span
-                className={styles.entryName}
-                onClick={() => handleEntryClick(entry)}
-                style={entry.type === 'directory' ? { cursor: 'pointer' } : undefined}
-              >
-                {entry.name}
-              </span>
+              {entry.type === 'directory' ? (
+                <button
+                  className={styles.entryName}
+                  onClick={() => handleEntryClick(entry)}
+                >
+                  {entry.name}
+                </button>
+              ) : (
+                <span className={styles.entryName}>{entry.name}</span>
+              )}
               {entry.type === 'file' && (
                 <>
                   <span className={styles.entryMeta}>{formatSize(entry.size)}</span>
