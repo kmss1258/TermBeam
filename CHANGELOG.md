@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.15.2] - 2026-03-20
+
+- fix(focus): tap-to-cursor for TUI apps and mobile focus resilience
+
 ## [1.15.1] - 2026-03-20
 
 - fix(e2e): update split view test for cycling labels
