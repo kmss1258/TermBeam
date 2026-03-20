@@ -84,7 +84,8 @@ export function MarkdownViewer({
 
   const contentRef = useRef<HTMLDivElement>(null);
   const markdownRef = useRef<HTMLDivElement>(null);
-  const { scale, resetZoom } = useContentPinchZoom(contentRef, markdownRef);
+  const spacerRef = useRef<HTMLDivElement>(null);
+  const { scale, resetZoom } = useContentPinchZoom(contentRef, markdownRef, spacerRef);
 
   return (
     <div className={styles.container}>
@@ -105,6 +106,7 @@ export function MarkdownViewer({
         ) : error ? (
           <div className={styles.error}>{error}</div>
         ) : (
+          <>
           <div className={styles.markdown} ref={markdownRef}>
             <Markdown
               remarkPlugins={[remarkGfm, remarkGemoji]}
@@ -168,6 +170,8 @@ export function MarkdownViewer({
               {content}
             </Markdown>
           </div>
+          <div ref={spacerRef} className={styles.spacer} />
+          </>
         )}
       </div>
     </div>

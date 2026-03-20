@@ -1,27 +1,70 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 
 /**
- * Pinch-to-zoom using CSS `zoom` property.
- * Unlike transform: scale(), CSS zoom reflowed content so scrolling works naturally.
+ * True visual pinch-to-zoom — scales content like a magnifying glass.
+ *
+ * How it works:
+ * 1. The target element is given a fixed pixel width matching the container
+ *    so its layout never changes regardless of scale.
+ * 2. CSS transform: scale() is applied to visually enlarge everything uniformly
+ *    (text, images, diagrams — all as rendered pixels).
+ * 3. A spacer div is resized to the scaled dimensions so the container's
+ *    native overflow scroll handles panning.
  */
 export function useContentPinchZoom(
   containerRef: React.RefObject<HTMLDivElement | null>,
   targetRef: React.RefObject<HTMLDivElement | null>,
+  spacerRef: React.RefObject<HTMLDivElement | null>,
 ) {
   const [scale, setScale] = useState(1);
   const scaleRef = useRef(1);
   const startDistRef = useRef(0);
   const startScaleRef = useRef(1);
   const isPinchingRef = useRef(false);
+  const baseWidthRef = useRef(0);
+
+  const applyZoom = useCallback(
+    (s: number) => {
+      const target = targetRef.current;
+      const spacer = spacerRef.current;
+      if (!target) return;
+
+      if (s <= 1.02) {
+        target.style.transform = '';
+        target.style.transformOrigin = '';
+        target.style.width = '';
+        target.style.position = '';
+        if (spacer) {
+          spacer.style.width = '';
+          spacer.style.height = '';
+        }
+      } else {
+        // Lock the target to its natural width so layout doesn't change
+        if (!baseWidthRef.current) {
+          baseWidthRef.current = target.offsetWidth;
+        }
+        target.style.width = `${baseWidthRef.current}px`;
+        target.style.transformOrigin = '0 0';
+        target.style.transform = `scale(${s})`;
+        target.style.position = 'absolute';
+        target.style.top = '0';
+        target.style.left = '0';
+        // Spacer provides scroll dimensions
+        if (spacer) {
+          spacer.style.width = `${baseWidthRef.current * s}px`;
+          spacer.style.height = `${target.scrollHeight * s}px`;
+        }
+      }
+    },
+    [targetRef, spacerRef],
+  );
 
   const resetZoom = useCallback(() => {
     scaleRef.current = 1;
+    baseWidthRef.current = 0;
     setScale(1);
-    const target = targetRef.current;
-    if (target) {
-      target.style.zoom = '';
-    }
-  }, [targetRef]);
+    applyZoom(1);
+  }, [applyZoom]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -51,13 +94,10 @@ export function useContentPinchZoom(
         e.preventDefault();
         const dist = getDistance(t0, t1);
         const raw = startScaleRef.current * (dist / startDistRef.current);
-        const newScale = Math.min(5, Math.max(0.5, raw));
+        const newScale = Math.min(5, Math.max(1, raw));
         scaleRef.current = newScale;
         setScale(newScale);
-        const target = targetRef.current;
-        if (target) {
-          target.style.zoom = `${newScale}`;
-        }
+        applyZoom(newScale);
       }
     }
 
@@ -65,14 +105,11 @@ export function useContentPinchZoom(
       if (e.touches.length < 2 && isPinchingRef.current) {
         isPinchingRef.current = false;
         startDistRef.current = 0;
-        // Snap to 1x if close
-        if (Math.abs(scaleRef.current - 1) < 0.08) {
+        if (scaleRef.current < 1.05) {
           scaleRef.current = 1;
+          baseWidthRef.current = 0;
           setScale(1);
-          const target = targetRef.current;
-          if (target) {
-            target.style.zoom = '';
-          }
+          applyZoom(1);
         }
       }
     }
@@ -86,7 +123,7 @@ export function useContentPinchZoom(
       container.removeEventListener('touchmove', onTouchMove);
       container.removeEventListener('touchend', onTouchEnd);
     };
-  }, [containerRef, targetRef]);
+  }, [containerRef, targetRef, applyZoom]);
 
   return { scale, resetZoom };
 }
