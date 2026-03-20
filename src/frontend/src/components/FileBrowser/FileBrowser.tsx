@@ -117,7 +117,7 @@ export function FileBrowser({ sessionId, rootDir, onClose }: FileBrowserProps) {
         <button className={styles.backBtn} onClick={onClose} title="Back to sessions">
           ←
         </button>
-        <span className={styles.headerTitle}>Files</span>
+        <span className={styles.headerTitle}>Downloads</span>
       </div>
 
       {/* Breadcrumb */}

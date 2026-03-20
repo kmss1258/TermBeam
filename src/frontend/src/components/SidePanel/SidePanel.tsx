@@ -285,10 +285,10 @@ export function SidePanel() {
                   title={
                     !activeId || !activeSession?.cwd
                       ? 'Select a session first'
-                      : 'Browse session files'
+                      : 'Download files from session'
                   }
                 >
-                  📂 Files
+                  ⬇️ Downloads
                 </button>
                 <button
                   className={styles.footerBtn}
