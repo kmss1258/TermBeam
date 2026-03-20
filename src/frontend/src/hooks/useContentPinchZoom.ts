@@ -41,12 +41,8 @@ export function useContentPinchZoom(
 
   useEffect(() => {
     const container = containerRef.current;
-    const target = targetRef.current;
-    const spacer = spacerRef.current;
-    if (!container || !target) return;
-    // Alias for TS narrowing inside closures
+    if (!container) return;
     const el = container;
-    const tgt = target;
 
     function getDistance(t0: Touch, t1: Touch): number {
       const dx = t1.clientX - t0.clientX;
@@ -55,13 +51,17 @@ export function useContentPinchZoom(
     }
 
     function lockBase() {
-      if (!baseWidthRef.current) {
+      const tgt = targetRef.current;
+      if (!baseWidthRef.current && tgt) {
         baseWidthRef.current = tgt.offsetWidth;
         baseHeightRef.current = tgt.scrollHeight;
       }
     }
 
     function applyDirect(s: number) {
+      const tgt = targetRef.current;
+      const spacer = spacerRef.current;
+      if (!tgt) return;
       if (s <= 1.02) {
         tgt.style.transform = '';
         tgt.style.transformOrigin = '';
