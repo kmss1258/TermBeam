@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.17.0] - 2026-03-22
+
+- feat(update): in-app update mechanism with two-tier strategy (#150)
+
 ## [1.16.0] - 2026-03-22
 
 - feat(viewer,notifications): git changes view and push notifications (#156)
