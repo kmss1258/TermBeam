@@ -520,7 +520,7 @@ describe('actionLogs', () => {
     assert.deepStrictEqual(spawnCalls[0].args, ['logs', 'termbeam', '--lines', '200']);
     assert.deepStrictEqual(spawnCalls[0].opts, {
       stdio: 'inherit',
-      ...(os.platform() === 'win32' ? { shell: true } : {}),
+      shell: os.platform() === 'win32',
     });
   });
 
