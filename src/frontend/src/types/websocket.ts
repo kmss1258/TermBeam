@@ -40,4 +40,16 @@ export interface WSErrorMessage {
   message: string;
 }
 
-export type WSServerMessage = WSOutputMessage | WSAttachedMessage | WSExitMessage | WSErrorMessage;
+export interface WSNotificationMessage {
+  type: 'notification';
+  notificationType: 'command-complete';
+  sessionName: string;
+  timestamp: number;
+}
+
+export type WSServerMessage =
+  | WSOutputMessage
+  | WSAttachedMessage
+  | WSExitMessage
+  | WSErrorMessage
+  | WSNotificationMessage;
