@@ -292,14 +292,31 @@ function detectInstallMethod() {
   // Check before Docker: a git checkout running inside a container (CI/devcontainers)
   // should be treated as source, not Docker
   if (isRunningFromSource()) {
+    const sourceRoot = getSourceRoot();
+    const baseCmd = 'git pull && npm install && npm run build:frontend';
+
+    if (isPm2) {
+      log.debug('Install method: source (PM2)');
+      return {
+        method: 'source',
+        command: `${baseCmd} && pm2 restart termbeam`,
+        installCmd: process.platform === 'win32' ? process.env.COMSPEC || 'cmd.exe' : 'sh',
+        installArgs: process.platform === 'win32' ? ['/c', baseCmd] : ['-c', baseCmd],
+        canAutoUpdate: true,
+        restartStrategy: 'pm2',
+        cwd: sourceRoot,
+      };
+    }
+
     log.debug('Install method: source');
     return {
       method: 'source',
-      command: 'git pull && npm install && npm run build:frontend',
+      command: baseCmd,
       installCmd: null,
       installArgs: null,
       canAutoUpdate: false,
       restartStrategy: 'none',
+      cwd: sourceRoot,
     };
   }
 
@@ -347,6 +364,26 @@ function isRunningInDocker() {
 }
 
 /**
+ * Find the root of the source checkout by walking up from __dirname.
+ * Returns the absolute path to the repo root, or null if not found.
+ */
+function getSourceRoot() {
+  if (__dirname.includes('node_modules')) return null;
+  try {
+    let currentDir = __dirname;
+    for (let i = 0; i < 10; i++) {
+      if (fs.existsSync(path.join(currentDir, '.git'))) return currentDir;
+      const parentDir = path.dirname(currentDir);
+      if (!parentDir || parentDir === currentDir) break;
+      currentDir = parentDir;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+/**
  * Detect if running from a git source checkout (not installed as a package).
  * Walks upward from __dirname looking for .git to avoid fragile fixed-depth assumptions.
  */
@@ -387,4 +424,5 @@ module.exports = {
   isRunningInDocker,
   isRunningFromSource,
   isRunningUnderPm2,
+  getSourceRoot,
 };

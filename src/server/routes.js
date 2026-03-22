@@ -101,12 +101,12 @@ function setupRoutes(app, { auth, sessions, config, state, pushManager }) {
 
     try {
       const info = await checkForUpdate({ currentVersion: config.version, force });
-      const { installCmd, installArgs, ...publicInstallInfo } = detectInstallMethod();
+      const { installCmd, installArgs, cwd, ...publicInstallInfo } = detectInstallMethod();
       state.updateInfo = { ...info, ...publicInstallInfo };
       res.json(state.updateInfo);
     } catch (err) {
       log.warn(`Update check failed: ${err.message}`);
-      const { installCmd, installArgs, ...publicInstallInfo } = detectInstallMethod();
+      const { installCmd, installArgs, cwd, ...publicInstallInfo } = detectInstallMethod();
       const fallback = {
         current: config.version,
         latest: null,
@@ -226,6 +226,7 @@ function setupRoutes(app, { auth, sessions, config, state, pushManager }) {
       restartStrategy: installInfo.restartStrategy,
       onProgress: broadcastProgress,
       performRestart,
+      cwd: installInfo.cwd,
     }).catch((err) => {
       log.error(`Update execution error: ${err.message}`);
     });

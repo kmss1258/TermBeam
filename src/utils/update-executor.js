@@ -71,6 +71,16 @@ function resetState() {
  * Returns { canUpdate, reason } — if canUpdate is false, reason explains why.
  */
 async function checkPermissions(method) {
+  // Source installs use git, not a package manager
+  if (method === 'source') {
+    try {
+      await execFilePromise('git', ['--version'], { timeout: VERIFY_TIMEOUT_MS });
+    } catch {
+      return { canUpdate: false, reason: 'git not found on PATH' };
+    }
+    return { canUpdate: true, reason: null };
+  }
+
   const cmd = method === 'yarn' ? 'yarn' : method === 'pnpm' ? 'pnpm' : 'npm';
 
   // Check if the package manager is available by running it directly
@@ -124,6 +134,7 @@ async function executeUpdate({
   restartStrategy,
   onProgress,
   performRestart,
+  cwd,
 }) {
   if (updateState.status !== 'idle' && updateState.status !== 'failed') {
     return { ...updateState, error: 'Update already in progress' };
@@ -169,6 +180,7 @@ async function executeUpdate({
       timeout: INSTALL_TIMEOUT_MS,
       maxBuffer: 10 * 1024 * 1024, // 10 MB — package manager installs can be verbose
       env: { ...process.env, NO_UPDATE_NOTIFIER: '1' },
+      cwd: cwd || undefined,
     });
 
     const output = (stdout + '\n' + stderr).trim();
@@ -178,7 +190,7 @@ async function executeUpdate({
     // Step 3: Verify
     notify({ status: 'verifying', phase: 'Verifying update...' });
 
-    const newVersion = await verifyInstalledVersion(method);
+    const newVersion = await verifyInstalledVersion(method, cwd);
     if (!newVersion) {
       notify({
         status: 'failed',
@@ -230,7 +242,22 @@ async function executeUpdate({
 
 // ── Version Verification ─────────────────────────────────────────────────────
 
-async function verifyInstalledVersion(method) {
+async function verifyInstalledVersion(method, cwd) {
+  // Source installs: read version from the repo's package.json after git pull
+  if (method === 'source') {
+    try {
+      const pkgPath = cwd
+        ? path.join(cwd, 'package.json')
+        : path.resolve(__dirname, '../../package.json');
+      const content = await fs.promises.readFile(pkgPath, 'utf8');
+      const pkg = JSON.parse(content);
+      return pkg.version || null;
+    } catch (err) {
+      log.debug(`Version verification via package.json failed: ${err.message}`);
+    }
+    return null;
+  }
+
   const cmd = method === 'yarn' ? 'yarn' : method === 'pnpm' ? 'pnpm' : 'npm';
   try {
     // Use npm/yarn/pnpm to read the installed version

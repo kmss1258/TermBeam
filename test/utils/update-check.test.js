@@ -404,16 +404,77 @@ describe('update-check', () => {
     it('should detect source when running from git repo', () => {
       delete process.env.npm_command;
       delete process.env.npm_execpath;
-      const { detectInstallMethod } = require('../../src/utils/update-check');
-      const result = detectInstallMethod();
-      // Running tests from the repo — .git exists and not in node_modules.
-      // In Docker/CI containers, may report 'docker' instead — both are non-auto-updatable.
+      // Clear PM2 env vars to test the non-PM2 source path
+      const origPm2Home = process.env.PM2_HOME;
+      const origPmId = process.env.pm_id;
+      const origPm2Usage = process.env.PM2_USAGE;
+      delete process.env.PM2_HOME;
+      delete process.env.pm_id;
+      delete process.env.PM2_USAGE;
+      delete require.cache[require.resolve('../../src/utils/update-check')];
+      try {
+        const { detectInstallMethod } = require('../../src/utils/update-check');
+        const result = detectInstallMethod();
+        // Running tests from the repo — .git exists and not in node_modules.
+        // In Docker/CI containers, may report 'docker' instead — both are non-auto-updatable.
+        assert.ok(
+          ['source', 'docker'].includes(result.method),
+          `expected 'source' or 'docker', got '${result.method}'`,
+        );
+        assert.equal(result.canAutoUpdate, false);
+        assert.equal(result.restartStrategy, 'none');
+        if (result.method === 'source') {
+          assert.ok(result.cwd, 'source method should include cwd');
+        }
+      } finally {
+        if (origPm2Home !== undefined) process.env.PM2_HOME = origPm2Home;
+        else delete process.env.PM2_HOME;
+        if (origPmId !== undefined) process.env.pm_id = origPmId;
+        else delete process.env.pm_id;
+        if (origPm2Usage !== undefined) process.env.PM2_USAGE = origPm2Usage;
+        else delete process.env.PM2_USAGE;
+      }
+    });
+
+    it('should enable auto-update for source under PM2', () => {
+      delete process.env.npm_command;
+      delete process.env.npm_execpath;
+      const origPm2Home = process.env.PM2_HOME;
+      const origPmId = process.env.pm_id;
+      process.env.PM2_HOME = '/home/user/.pm2';
+      process.env.pm_id = '0';
+      delete require.cache[require.resolve('../../src/utils/update-check')];
+      try {
+        const {
+          detectInstallMethod,
+          isRunningFromSource,
+        } = require('../../src/utils/update-check');
+        if (!isRunningFromSource()) return; // Skip in Docker/CI
+        const result = detectInstallMethod();
+        assert.equal(result.method, 'source');
+        assert.equal(result.canAutoUpdate, true);
+        assert.equal(result.restartStrategy, 'pm2');
+        assert.ok(result.command.includes('pm2 restart'), 'command should include pm2 restart');
+        assert.ok(result.installCmd, 'should have installCmd for auto-update');
+        assert.ok(result.installArgs, 'should have installArgs for auto-update');
+        assert.ok(result.cwd, 'should include cwd for source install');
+      } finally {
+        if (origPm2Home !== undefined) process.env.PM2_HOME = origPm2Home;
+        else delete process.env.PM2_HOME;
+        if (origPmId !== undefined) process.env.pm_id = origPmId;
+        else delete process.env.pm_id;
+      }
+    });
+
+    it('getSourceRoot should return repo root directory', () => {
+      const { getSourceRoot } = require('../../src/utils/update-check');
+      const root = getSourceRoot();
+      assert.ok(root, 'should find source root');
+      assert.ok(fs.existsSync(path.join(root, '.git')), 'source root should contain .git');
       assert.ok(
-        ['source', 'docker'].includes(result.method),
-        `expected 'source' or 'docker', got '${result.method}'`,
+        fs.existsSync(path.join(root, 'package.json')),
+        'source root should contain package.json',
       );
-      assert.equal(result.canAutoUpdate, false);
-      assert.equal(result.restartStrategy, 'none');
     });
 
     it('should return canAutoUpdate and restartStrategy fields', () => {
