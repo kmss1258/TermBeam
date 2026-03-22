@@ -73,6 +73,8 @@ function normalizeVersion(version) {
 /**
  * Compare two semver version strings (e.g. "1.10.2" vs "1.11.0").
  * Returns true if `latest` is newer than `current`.
+ * Pre-release versions (e.g. "1.15.3-rc.1") are considered older than
+ * the same stable version ("1.15.3"), so an update will be offered.
  * Returns false if either version cannot be parsed.
  */
 function isNewerVersion(current, latest) {
@@ -83,7 +85,23 @@ function isNewerVersion(current, latest) {
     if (lat[i] > cur[i]) return true;
     if (lat[i] < cur[i]) return false;
   }
+  // Same base version — if current is a pre-release but latest is stable,
+  // the stable release is newer (e.g. 1.15.3-rc.1 → 1.15.3)
+  if (isPreRelease(current) && !isPreRelease(latest)) return true;
   return false;
+}
+
+/**
+ * Check if a version string contains pre-release metadata (e.g. "-rc.1", "-dev.5").
+ */
+function isPreRelease(version) {
+  if (typeof version !== 'string') return false;
+  let v = version.trim();
+  if (v[0] === 'v' || v[0] === 'V') v = v.slice(1);
+  // Strip build metadata first (+foo)
+  const plusIdx = v.indexOf('+');
+  if (plusIdx !== -1) v = v.slice(0, plusIdx);
+  return v.includes('-');
 }
 
 /**
@@ -222,39 +240,151 @@ async function checkForUpdate({ currentVersion, force = false } = {}) {
 }
 
 /**
- * Detect how TermBeam was installed and return the appropriate update command.
- * @returns {{ method: string, command: string }}
+ * Detect how TermBeam was installed and return the appropriate update command,
+ * whether it can auto-update, and the restart strategy.
+ * @returns {{ method: string, command: string, canAutoUpdate: boolean, restartStrategy: 'pm2'|'exit'|'none', installCmd: string|null, installArgs: string[]|null }}
+ * Note: installCmd/installArgs are internal — stripped before sending to API clients.
  */
 function detectInstallMethod() {
   // npx / npm exec — npm sets npm_command=exec
   if (process.env.npm_command === 'exec') {
     log.debug('Install method: npx');
-    return { method: 'npx', command: 'npx termbeam@latest' };
+    return {
+      method: 'npx',
+      command: 'npx termbeam@latest',
+      installCmd: 'npx',
+      installArgs: ['termbeam@latest'],
+      canAutoUpdate: false,
+      restartStrategy: 'none',
+    };
   }
 
+  // PM2 managed — detect via PM2 environment variables
+  const isPm2 = isRunningUnderPm2();
+
   // Detect package manager from npm_execpath (set during npm/yarn/pnpm lifecycle)
+  // Check this before file-system checks since env vars are more reliable
   const execPath = process.env.npm_execpath || '';
   if (execPath.includes('yarn')) {
-    log.debug('Install method: yarn');
-    return { method: 'yarn', command: 'yarn global add termbeam@latest' };
+    log.debug(`Install method: yarn${isPm2 ? ' (PM2)' : ''}`);
+    return {
+      method: 'yarn',
+      command: 'yarn global add termbeam@latest',
+      installCmd: 'yarn',
+      installArgs: ['global', 'add', 'termbeam@latest'],
+      canAutoUpdate: true,
+      restartStrategy: isPm2 ? 'pm2' : 'exit',
+    };
   }
   if (execPath.includes('pnpm')) {
-    log.debug('Install method: pnpm');
-    return { method: 'pnpm', command: 'pnpm add -g termbeam@latest' };
+    log.debug(`Install method: pnpm${isPm2 ? ' (PM2)' : ''}`);
+    return {
+      method: 'pnpm',
+      command: 'pnpm add -g termbeam@latest',
+      installCmd: 'pnpm',
+      installArgs: ['add', '-g', 'termbeam@latest'],
+      canAutoUpdate: true,
+      restartStrategy: isPm2 ? 'pm2' : 'exit',
+    };
+  }
+
+  // Development / git clone — not in node_modules and .git exists
+  // Check before Docker: a git checkout running inside a container (CI/devcontainers)
+  // should be treated as source, not Docker
+  if (isRunningFromSource()) {
+    log.debug('Install method: source');
+    return {
+      method: 'source',
+      command: 'git pull && npm install && npm run build:frontend',
+      installCmd: null,
+      installArgs: null,
+      canAutoUpdate: false,
+      restartStrategy: 'none',
+    };
+  }
+
+  // Docker — check for /.dockerenv or /proc/1/cgroup containing docker
+  if (isRunningInDocker()) {
+    log.debug('Install method: docker');
+    return {
+      method: 'docker',
+      command: 'docker pull termbeam:latest && docker-compose up -d',
+      installCmd: null,
+      installArgs: null,
+      canAutoUpdate: false,
+      restartStrategy: 'none',
+    };
   }
 
   // Default: npm global install
-  log.debug('Install method: npm');
-  return { method: 'npm', command: 'npm install -g termbeam@latest' };
+  log.debug(`Install method: npm${isPm2 ? ' (PM2)' : ''}`);
+  return {
+    method: 'npm',
+    command: 'npm install -g termbeam@latest',
+    installCmd: 'npm',
+    installArgs: ['install', '-g', 'termbeam@latest'],
+    canAutoUpdate: true,
+    restartStrategy: isPm2 ? 'pm2' : 'exit',
+  };
+}
+
+/**
+ * Detect if running inside a Docker container.
+ */
+function isRunningInDocker() {
+  try {
+    if (fs.existsSync('/.dockerenv')) return true;
+  } catch {
+    // ignore
+  }
+  try {
+    const cgroup = fs.readFileSync('/proc/1/cgroup', 'utf8');
+    if (cgroup.includes('docker') || cgroup.includes('containerd')) return true;
+  } catch {
+    // Not Linux or no access — not Docker
+  }
+  return false;
+}
+
+/**
+ * Detect if running from a git source checkout (not installed as a package).
+ * Walks upward from __dirname looking for .git to avoid fragile fixed-depth assumptions.
+ */
+function isRunningFromSource() {
+  // If __dirname is inside node_modules, it's a package install
+  if (__dirname.includes('node_modules')) return false;
+  try {
+    let currentDir = __dirname;
+    for (let i = 0; i < 10; i++) {
+      if (fs.existsSync(path.join(currentDir, '.git'))) return true;
+      const parentDir = path.dirname(currentDir);
+      if (!parentDir || parentDir === currentDir) break;
+      currentDir = parentDir;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Detect if running under PM2 process manager.
+ */
+function isRunningUnderPm2() {
+  return !!(process.env.PM2_HOME || process.env.pm_id || process.env.PM2_USAGE);
 }
 
 module.exports = {
   checkForUpdate,
   isNewerVersion,
+  isPreRelease,
   normalizeVersion,
   fetchLatestVersion,
   readCache,
   writeCache,
   sanitizeVersion,
   detectInstallMethod,
+  isRunningInDocker,
+  isRunningFromSource,
+  isRunningUnderPm2,
 };

@@ -550,13 +550,89 @@ Requires authentication (session cookie or `Authorization: Bearer <password>`) w
   "latest": "1.11.0",
   "updateAvailable": true,
   "method": "npm",
-  "command": "npm install -g termbeam@latest"
+  "command": "npm install -g termbeam@latest",
+  "canAutoUpdate": true,
+  "restartStrategy": "exit"
 }
 ```
 
-The `method` field indicates how TermBeam was installed (`npm`, `npx`, `yarn`, or `pnpm`) and `command` provides the appropriate update command.
+| Field             | Type    | Description                                                                                           |
+| ----------------- | ------- | ----------------------------------------------------------------------------------------------------- |
+| `method`          | string  | How TermBeam was installed: `npm`, `npx`, `yarn`, `pnpm`, `docker`, or `source`                       |
+| `command`         | string  | Suggested update command for this installation method                                                 |
+| `canAutoUpdate`   | boolean | Whether the in-app update mechanism can auto-update this installation                                 |
+| `restartStrategy` | string  | How the server will restart after update: `pm2` (PM2 managed restart), `exit` (clean exit), or `none` |
 
 When no update is available or the check fails, `updateAvailable` is `false` and `latest` may be `null`.
+
+#### `POST /api/update`
+
+Trigger an in-app update. Only works when `canAutoUpdate` is `true` (npm/yarn/pnpm global installs). Rate-limited to 1 request per 5 minutes.
+
+**Response (success):**
+
+```json
+{
+  "status": "updating",
+  "method": "npm"
+}
+```
+
+**Response (not supported):**
+
+```json
+{
+  "error": "Auto-update not available for this installation method",
+  "method": "source",
+  "command": "git pull && npm install && npm run build:frontend",
+  "canAutoUpdate": false
+}
+```
+
+**Response (already in progress):**
+
+Returns HTTP 409 with the current update state.
+
+**Response (rate-limited):**
+
+Returns HTTP 429 when rate limit (1 request per 5 minutes) is exceeded:
+
+```json
+{
+  "error": "Update already attempted recently. Try again in a few minutes."
+}
+```
+
+After triggering, progress is broadcast via WebSocket `update-progress` messages. The server will either restart (PM2) or exit cleanly (non-PM2) once the update is verified.
+
+#### `GET /api/update/status`
+
+Poll the current update status. Useful as a fallback when WebSocket is not connected.
+
+**Response:**
+
+```json
+{
+  "status": "idle",
+  "phase": null,
+  "progress": null,
+  "error": null,
+  "fromVersion": null,
+  "toVersion": null,
+  "startedAt": null,
+  "restartStrategy": null
+}
+```
+
+| Status                 | Description                                 |
+| ---------------------- | ------------------------------------------- |
+| `idle`                 | No update in progress                       |
+| `checking-permissions` | Verifying write access to global npm prefix |
+| `installing`           | Running package manager install command     |
+| `verifying`            | Checking installed version after update     |
+| `restarting`           | Update verified, server restarting          |
+| `complete`             | Update finished successfully                |
+| `failed`               | Update failed (see `error` field)           |
 
 #### `GET /api/dirs?q=/path`
 
@@ -1044,6 +1120,25 @@ Sent when a command completes (child process exits). Broadcast in real time to c
 ```json
 { "type": "error", "message": "Session not found" }
 ```
+
+#### Update Progress
+
+Sent during an in-app update (triggered via `POST /api/update`). Allows the frontend to show real-time progress without polling.
+
+```json
+{
+  "type": "update-progress",
+  "status": "installing",
+  "phase": "Installing update...",
+  "progress": "added 42 packages...",
+  "error": null,
+  "fromVersion": "1.14.0",
+  "toVersion": null,
+  "restartStrategy": "exit"
+}
+```
+
+The `status` field follows the same values as `GET /api/update/status`. When `status` reaches `restarting`, the WebSocket connection will close shortly after (close code 1012 for non-PM2 installs).
 
 ---
 

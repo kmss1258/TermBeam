@@ -103,9 +103,34 @@ describe('update-check', () => {
       assert.equal(isNewerVersion('1.0', '1.0.1'), true);
     });
 
-    it('should handle prerelease versions', () => {
+    it('should treat pre-release as older than same stable version', () => {
       const { isNewerVersion } = require('../../src/utils/update-check');
-      assert.equal(isNewerVersion('1.0.0-beta.1', '1.0.0'), false);
+      // 1.0.0-beta.1 is a pre-release of 1.0.0 — stable 1.0.0 is newer
+      assert.equal(isNewerVersion('1.0.0-beta.1', '1.0.0'), true);
+    });
+
+    it('should treat pre-release as older than newer stable version', () => {
+      const { isNewerVersion } = require('../../src/utils/update-check');
+      assert.equal(isNewerVersion('1.0.0-rc.1', '1.0.1'), true);
+    });
+
+    it('should not show update for pre-release when latest is older stable', () => {
+      const { isNewerVersion } = require('../../src/utils/update-check');
+      // Running 2.0.0-rc.1, latest stable is 1.9.0 — no update
+      assert.equal(isNewerVersion('2.0.0-rc.1', '1.9.0'), false);
+    });
+
+    it('should offer update from dev build to same-base stable version', () => {
+      const { isNewerVersion } = require('../../src/utils/update-check');
+      // Dev builds from git (e.g. 1.15.2-dev.5+gabcdef) are pre-release —
+      // stable 1.15.2 is considered newer and should trigger an update
+      assert.equal(isNewerVersion('1.15.2-dev.5+gabcdef', '1.15.2'), true);
+    });
+
+    it('should not show update between two pre-releases of same version', () => {
+      const { isNewerVersion } = require('../../src/utils/update-check');
+      // Both are pre-releases — latest is also pre-release, no update
+      assert.equal(isNewerVersion('1.0.0-rc.1', '1.0.0-rc.2'), false);
     });
 
     it('should return false for unparseable input', () => {
@@ -352,6 +377,8 @@ describe('update-check', () => {
       const result = detectInstallMethod();
       assert.equal(result.method, 'npx');
       assert.ok(result.command.includes('npx'));
+      assert.equal(result.canAutoUpdate, false);
+      assert.equal(result.restartStrategy, 'none');
     });
 
     it('should detect yarn via npm_execpath', () => {
@@ -361,6 +388,7 @@ describe('update-check', () => {
       const result = detectInstallMethod();
       assert.equal(result.method, 'yarn');
       assert.ok(result.command.includes('yarn'));
+      assert.equal(result.canAutoUpdate, true);
     });
 
     it('should detect pnpm via npm_execpath', () => {
@@ -370,15 +398,65 @@ describe('update-check', () => {
       const result = detectInstallMethod();
       assert.equal(result.method, 'pnpm');
       assert.ok(result.command.includes('pnpm'));
+      assert.equal(result.canAutoUpdate, true);
     });
 
-    it('should default to npm', () => {
+    it('should detect source when running from git repo', () => {
       delete process.env.npm_command;
       delete process.env.npm_execpath;
       const { detectInstallMethod } = require('../../src/utils/update-check');
       const result = detectInstallMethod();
-      assert.equal(result.method, 'npm');
-      assert.ok(result.command.includes('npm install'));
+      // Running tests from the repo — .git exists and not in node_modules.
+      // In Docker/CI containers, may report 'docker' instead — both are non-auto-updatable.
+      assert.ok(
+        ['source', 'docker'].includes(result.method),
+        `expected 'source' or 'docker', got '${result.method}'`,
+      );
+      assert.equal(result.canAutoUpdate, false);
+      assert.equal(result.restartStrategy, 'none');
+    });
+
+    it('should return canAutoUpdate and restartStrategy fields', () => {
+      process.env.npm_command = 'exec';
+      const { detectInstallMethod } = require('../../src/utils/update-check');
+      const result = detectInstallMethod();
+      assert.ok('canAutoUpdate' in result, 'should have canAutoUpdate field');
+      assert.ok('restartStrategy' in result, 'should have restartStrategy field');
+    });
+
+    it('isRunningFromSource should return true for repo directory', () => {
+      const { isRunningFromSource } = require('../../src/utils/update-check');
+      // Tests run from the repo, so this should be true
+      assert.equal(isRunningFromSource(), true);
+    });
+
+    it('isRunningUnderPm2 should return false when no PM2 env vars', () => {
+      const origPm2Home = process.env.PM2_HOME;
+      const origPmId = process.env.pm_id;
+      const origPm2Usage = process.env.PM2_USAGE;
+      delete process.env.PM2_HOME;
+      delete process.env.pm_id;
+      delete process.env.PM2_USAGE;
+      try {
+        const { isRunningUnderPm2 } = require('../../src/utils/update-check');
+        assert.equal(isRunningUnderPm2(), false);
+      } finally {
+        if (origPm2Home !== undefined) process.env.PM2_HOME = origPm2Home;
+        if (origPmId !== undefined) process.env.pm_id = origPmId;
+        if (origPm2Usage !== undefined) process.env.PM2_USAGE = origPm2Usage;
+      }
+    });
+
+    it('isRunningUnderPm2 should return true when PM2_HOME is set', () => {
+      const orig = process.env.PM2_HOME;
+      process.env.PM2_HOME = '/home/user/.pm2';
+      try {
+        const { isRunningUnderPm2 } = require('../../src/utils/update-check');
+        assert.equal(isRunningUnderPm2(), true);
+      } finally {
+        if (orig !== undefined) process.env.PM2_HOME = orig;
+        else delete process.env.PM2_HOME;
+      }
     });
   });
 });

@@ -101,21 +101,140 @@ function setupRoutes(app, { auth, sessions, config, state, pushManager }) {
 
     try {
       const info = await checkForUpdate({ currentVersion: config.version, force });
-      const installInfo = detectInstallMethod();
-      state.updateInfo = { ...info, ...installInfo };
+      const { installCmd, installArgs, ...publicInstallInfo } = detectInstallMethod();
+      state.updateInfo = { ...info, ...publicInstallInfo };
       res.json(state.updateInfo);
     } catch (err) {
       log.warn(`Update check failed: ${err.message}`);
-      const installInfo = detectInstallMethod();
+      const { installCmd, installArgs, ...publicInstallInfo } = detectInstallMethod();
       const fallback = {
         current: config.version,
         latest: null,
         updateAvailable: false,
-        ...installInfo,
+        ...publicInstallInfo,
       };
       state.updateInfo = fallback;
       res.json(fallback);
     }
+  });
+
+  // Trigger update — rate limited to 1 per 5 minutes
+  const updateTriggerLimit = rateLimit({
+    windowMs: 5 * 60 * 1000,
+    max: 1,
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: (_req, res) =>
+      res
+        .status(429)
+        .json({ error: 'Update already attempted recently. Try again in a few minutes.' }),
+  });
+
+  app.post('/api/update', auth.middleware, updateTriggerLimit, async (req, res) => {
+    const { detectInstallMethod } = require('../utils/update-check');
+    const { getUpdateState, executeUpdate, resetState } = require('../utils/update-executor');
+
+    const currentState = getUpdateState();
+    if (currentState.status !== 'idle' && currentState.status !== 'failed') {
+      return res.status(409).json({ error: 'Update already in progress', state: currentState });
+    }
+    // Reset state if retrying after a failure
+    if (currentState.status === 'failed') resetState();
+
+    const installInfo = detectInstallMethod();
+    if (!installInfo.canAutoUpdate) {
+      return res.status(400).json({
+        error: 'Auto-update not available for this installation method',
+        method: installInfo.method,
+        command: installInfo.command,
+        canAutoUpdate: false,
+      });
+    }
+
+    // Respond immediately — update runs in background
+    res.json({ status: 'updating', method: installInfo.method });
+
+    // Broadcast progress to WebSocket clients
+    const broadcastProgress = (updateStatus) => {
+      if (state.wss) {
+        const msg = JSON.stringify({ type: 'update-progress', ...updateStatus });
+        state.wss.clients.forEach((client) => {
+          if (client.readyState === 1) {
+            try {
+              client.send(msg);
+            } catch {
+              // Client may have disconnected
+            }
+          }
+        });
+      }
+    };
+
+    // Build the restart handler
+    const performRestart = async () => {
+      if (installInfo.restartStrategy === 'pm2') {
+        // PM2 restart — PM2 will bring the process back up
+        const { execFile: execFileCb } = require('child_process');
+        const serviceName = process.env.pm_id || 'termbeam';
+        broadcastProgress({
+          status: 'restarting',
+          phase: 'Restarting via PM2...',
+          restartStrategy: 'pm2',
+        });
+        // Give WS messages time to reach clients
+        await new Promise((r) => setTimeout(r, 1000));
+        // Use async execFile so WS messages can flush before the restart
+        execFileCb('pm2', ['restart', serviceName], { timeout: 10000, stdio: 'ignore' }, (err) => {
+          if (err) {
+            log.warn(`PM2 restart failed: ${err.message}`);
+            // Fall back to exit
+            sessions.shutdown();
+            process.exit(0);
+          }
+        });
+      } else {
+        // Exit strategy — clean shutdown, user must restart manually
+        broadcastProgress({
+          status: 'restarting',
+          phase: 'Update installed. Server shutting down...',
+          restartStrategy: 'exit',
+        });
+        // Close all WS connections with "Service Restart" close code
+        if (state.wss) {
+          state.wss.clients.forEach((client) => {
+            try {
+              client.close(1012, 'Server updated — please restart');
+            } catch {
+              // ignore
+            }
+          });
+        }
+        // Give WS close frames time to be sent
+        await new Promise((r) => setTimeout(r, 1000));
+        sessions.shutdown();
+        process.exit(0);
+      }
+    };
+
+    // Execute update in background (don't await in request handler)
+    executeUpdate({
+      currentVersion: config.version,
+      installCmd: installInfo.installCmd,
+      installArgs: installInfo.installArgs,
+      command: installInfo.command,
+      method: installInfo.method,
+      restartStrategy: installInfo.restartStrategy,
+      onProgress: broadcastProgress,
+      performRestart,
+    }).catch((err) => {
+      log.error(`Update execution error: ${err.message}`);
+    });
+  });
+
+  // Poll update status (fallback for when WS isn't connected)
+  app.get('/api/update/status', apiRateLimit, auth.middleware, (_req, res) => {
+    const { getUpdateState } = require('../utils/update-executor');
+    res.json(getUpdateState());
   });
 
   // Share token auto-login middleware: validates ?ott= param, sets session cookie, redirects to clean URL

@@ -40,6 +40,17 @@ export interface WSErrorMessage {
   message: string;
 }
 
+export interface WSUpdateProgressMessage {
+  type: 'update-progress';
+  status: string;
+  phase?: string;
+  progress?: string;
+  error?: string;
+  fromVersion?: string;
+  toVersion?: string;
+  restartStrategy?: string;
+}
+
 export interface WSNotificationMessage {
   type: 'notification';
   notificationType: 'command-complete';
@@ -52,4 +63,5 @@ export type WSServerMessage =
   | WSAttachedMessage
   | WSExitMessage
   | WSErrorMessage
+  | WSUpdateProgressMessage
   | WSNotificationMessage;
