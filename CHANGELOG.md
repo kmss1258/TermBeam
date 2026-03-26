@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.17.5] - 2026-03-26
+
+- fix(git): resolve diff/blame paths from repo root and scope CodeViewer state per session
+
 ## [1.17.4] - 2026-03-23
 
 - fix(tunnel): add watchdog for auto-recovery and keep keyboard on tab switch (#161)
