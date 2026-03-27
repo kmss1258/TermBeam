@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.17.7] - 2026-03-27
+
+- fix(ui): refresh button triggers full reload and update restart auto-recovers (#168)
+- fix(ci): exclude solo-dev checks from scorecard monitor
+
 ## [1.17.6] - 2026-03-27
 
 - feat(security): improve OpenSSF scorecard score (#163)
