@@ -118,7 +118,11 @@ Manages Azure DevTunnel lifecycle: login, create, host, cleanup. Includes a **wa
 - **Zombie detection** — if host connections drop to 0 for two consecutive checks (60s grace), the stale process is killed and a restart is initiated.
 - **Crash detection** — an `exit` handler on the child process triggers immediate restart if the process dies.
 - **Auto-restart** — exponential backoff (1s → 2s → 5s → 10s → 15s → 30s), up to 10 attempts before giving up.
+- **Auth-wait system** — detects auth token expiry (Microsoft limitation), enters an auth-wait mode, polls for re-authentication via device code flow, and auto-reconnects once a fresh token is obtained.
+- **Token lifetime monitoring** — tracks the remaining lifetime of the DevTunnel auth token and emits warnings when less than 1 hour remains, giving the frontend time to prompt the user.
 - **Event emitter** — exports `tunnelEvents` (EventEmitter) with events: `connected`, `disconnected`, `reconnecting`, `failed`. The server subscribes for logging.
+
+Also exports `getLoginInfo()` (returns current auth provider and token expiry) and `parseLoginInfo()` (parses raw `devtunnel` CLI output into structured login metadata).
 
 ### `tunnel/install.js` — DevTunnel Installer
 

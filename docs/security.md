@@ -176,6 +176,13 @@ The following UI features are entirely client-side and introduce **no new server
 - Use `--lan` or `--host 0.0.0.0` to allow LAN access
 - The tunnel feature handles TLS via Azure DevTunnels
 
+### Tunnel Token Expiry
+
+- DevTunnel auth tokens expire periodically (a Microsoft-imposed limitation)
+- TermBeam detects token expiry and enters **auth-wait mode**, pausing tunnel operations until a fresh token is obtained
+- Users can renew the token in-app via a device code flow (`POST /api/tunnel/renew`), which returns a URL and one-time code to complete re-authentication
+- Once renewed, the tunnel reconnects automatically — no server restart required
+
 ## Best Practices
 
 <!-- prettier-ignore -->

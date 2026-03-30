@@ -975,6 +975,55 @@ Remove a previously registered push subscription.
 
 ---
 
+### Tunnel
+
+#### `GET /api/tunnel/status`
+
+Returns the current tunnel connection state, provider, and token lifetime.
+
+**Response (200):**
+
+```json
+{
+  "state": "connected",
+  "provider": "microsoft",
+  "tokenLifetimeSeconds": 3200
+}
+```
+
+| Field                  | Type        | Description                                                                                |
+| ---------------------- | ----------- | ------------------------------------------------------------------------------------------ |
+| `state`                | string      | Tunnel state: `connected`, `disconnected`, `expiring`, `auth-expired`, or `unknown`        |
+| `provider`             | string/null | Auth provider used for the tunnel: `microsoft`, `github`, or `null` if no tunnel is active |
+| `tokenLifetimeSeconds` | number/null | Seconds remaining on the current auth token, or `null` if unavailable                      |
+
+---
+
+#### `POST /api/tunnel/renew`
+
+Initiates a device code authentication flow to renew an expired tunnel token. The client should display the returned URL and code to the user.
+
+**Response (200):**
+
+```json
+{ "url": "https://microsoft.com/devicelogin", "code": "ABC123" }
+```
+
+| Field  | Type   | Description                                     |
+| ------ | ------ | ----------------------------------------------- |
+| `url`  | string | Device login URL the user should open           |
+| `code` | string | One-time code the user enters at the device URL |
+
+**Response (504):**
+
+```json
+{ "error": "Timed out waiting for device code" }
+```
+
+Returned when the device code flow does not complete within the expected timeout.
+
+---
+
 ### Port Preview
 
 #### `GET /preview/:port/*`
@@ -1139,6 +1188,25 @@ Sent during an in-app update (triggered via `POST /api/update`). Allows the fron
 ```
 
 The `status` field follows the same values as `GET /api/update/status`. When `status` reaches `restarting`, the WebSocket connection will close shortly after (close code 1012 for non-PM2 installs).
+
+#### Tunnel Status
+
+Broadcast when the tunnel connection state changes. Allows the frontend to show tunnel health and prompt for re-authentication when tokens expire.
+
+```json
+{
+  "type": "tunnel-status",
+  "state": "expiring",
+  "expiresIn": 1800,
+  "provider": "microsoft"
+}
+```
+
+| Field       | Type   | Description                                                                                        |
+| ----------- | ------ | -------------------------------------------------------------------------------------------------- |
+| `state`     | string | Tunnel state: `connected`, `disconnected`, `expiring`, `auth-expired`, `reconnecting`, or `failed` |
+| `expiresIn` | number | Seconds until the auth token expires (present when `state` is `expiring` or `connected`)           |
+| `provider`  | string | Auth provider: `microsoft` or `github` (present when a tunnel is active)                           |
 
 ---
 
