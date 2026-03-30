@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.18.0] - 2026-03-30
+
+- feat(tunnel): auth expiry detection, in-app renewal, and token monitoring
+- fix(tunnel): handle DevTunnel auth expiry and prefer Entra login
+
 ## [1.17.8] - 2026-03-30
 
 - fix(frontend): single-click tabs, smart session naming, push reliability (#169)
