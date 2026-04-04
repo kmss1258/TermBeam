@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { fetchSessions, deleteSession, fetchVersion, getShareUrl } from '@/services/api';
 import { useUIStore } from '@/stores/uiStore';
 import { useThemeStore } from '@/stores/themeStore';
-import { THEMES, TERMINAL_THEMES, type ThemeId } from '@/themes/terminalThemes';
+import { THEMES, type ThemeId } from '@/themes/terminalThemes';
 import type { Session } from '@/types';
 import UpdateBanner from '@/components/common/UpdateBanner';
 import TunnelBanner from '@/components/common/TunnelBanner';
@@ -223,23 +223,24 @@ export default function SessionsHub() {
           </div>
           <div className={styles.themePanelList}>
             {THEMES.map((theme) => {
-              const t = TERMINAL_THEMES[theme.id];
-              const palette = t
-                ? [t.background, t.cursor, t.magenta, t.cyan, t.yellow]
-                : [theme.bg, '#ccc', '#f0f', '#0ff', '#ff0'];
+              const rc = parseInt(theme.bg.slice(1, 3), 16);
+              const gc = parseInt(theme.bg.slice(3, 5), 16);
+              const bc = parseInt(theme.bg.slice(5, 7), 16);
+              const isLight = (rc + gc + bc) / 3 > 140;
+              const isActive = theme.id === themeId;
               return (
               <button
                 key={theme.id}
-                className={`${styles.themeOption} ${theme.id === themeId ? styles.themeOptionActive : ''}`}
+                className={`${styles.themeRow} ${isActive ? styles.themeRowActive : ''}`}
                 onClick={() => setTheme(theme.id as ThemeId)}
               >
-                <span className={styles.themePalette}>
-                  {palette.map((color, i) => (
-                    <span key={i} style={{ background: color }} />
-                  ))}
+                <span className={styles.themeBar}>
+                  <span style={{ flex: 40, background: theme.bg }} />
+                  <span style={{ flex: 30, background: theme.surface }} />
+                  <span style={{ flex: 20, background: theme.accent }} />
+                  <span style={{ flex: 10, background: theme.text }} />
                 </span>
-                {theme.name}
-                {theme.id === themeId && <span className={styles.themeCheck}>✓</span>}
+                <span className={styles.themeLabel} style={isLight ? { color: '#1a1a1a', textShadow: 'none' } : undefined}>{theme.name}</span>
               </button>
               );
             })}

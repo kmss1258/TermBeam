@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { useUIStore } from '@/stores/uiStore';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useThemeStore } from '@/stores/themeStore';
-import { THEMES, TERMINAL_THEMES, type ThemeId } from '@/themes/terminalThemes';
+import { THEMES, type ThemeId } from '@/themes/terminalThemes';
 import { deleteSession, renameSession, fetchVersion, getShareUrl } from '@/services/api';
 import { playNotificationSound, setNotificationsEnabled } from '@/services/audio';
 import { isPushSubscribedSync } from '@/services/pushSubscription';
@@ -447,44 +447,26 @@ export default function CommandPalette() {
           </div>
           <div className={styles.list}>
             {THEMES.map((theme) => {
-              const t = TERMINAL_THEMES[theme.id];
-              const palette = t
-                ? [t.background, t.cursor, t.magenta, t.cyan, t.yellow]
-                : [theme.bg, '#ccc', '#f0f', '#0ff', '#ff0'];
+              const rc = parseInt(theme.bg.slice(1, 3), 16);
+              const gc = parseInt(theme.bg.slice(3, 5), 16);
+              const bc = parseInt(theme.bg.slice(5, 7), 16);
+              const isLight = (rc + gc + bc) / 3 > 140;
+              const isActive = theme.id === themeId;
               return (
               <button
                 key={theme.id}
-                className={styles.item}
-                data-selected={theme.id === themeId}
+                className={`${styles.themeRow} ${isActive ? styles.themeRowActive : ''}`}
                 data-testid="theme-item"
                 data-tid={theme.id}
                 onClick={() => setTheme(theme.id as ThemeId)}
               >
-                <span
-                  style={{
-                    display: 'inline-flex',
-                    width: 32,
-                    height: 16,
-                    borderRadius: 4,
-                    overflow: 'hidden',
-                    border: '1px solid var(--border, #555)',
-                    flexShrink: 0,
-                  }}
-                >
-                  {palette.map((color, i) => (
-                    <span
-                      key={i}
-                      style={{
-                        flex: 1,
-                        background: color,
-                      }}
-                    />
-                  ))}
+                <span className={styles.themeBar}>
+                  <span style={{ flex: 40, background: theme.bg }} />
+                  <span style={{ flex: 30, background: theme.surface }} />
+                  <span style={{ flex: 20, background: theme.accent }} />
+                  <span style={{ flex: 10, background: theme.text }} />
                 </span>
-                <span>{theme.name}</span>
-                {theme.id === themeId && (
-                  <span style={{ marginLeft: 'auto', fontSize: 12, opacity: 0.6 }}>✓</span>
-                )}
+                <span className={styles.themeLabel} style={isLight ? { color: '#1a1a1a', textShadow: 'none' } : undefined}>{theme.name}</span>
               </button>
               );
             })}

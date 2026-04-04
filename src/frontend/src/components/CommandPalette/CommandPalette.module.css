@@ -149,3 +149,42 @@
 .item[aria-selected='true'] {
   background: var(--surface-hover, rgba(255, 255, 255, 0.08));
 }
+
+.themeRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 38px;
+  border-radius: 6px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 2px solid transparent;
+  background: none;
+  padding: 0;
+  transition: border-color 0.15s;
+}
+
+.themeRow:hover {
+  border-color: var(--border, #555);
+}
+
+.themeRowActive {
+  border-color: var(--accent, #58a6ff);
+}
+
+.themeBar {
+  position: absolute;
+  inset: 0;
+  display: flex;
+}
+
+.themeLabel {
+  position: relative;
+  z-index: 1;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+}
