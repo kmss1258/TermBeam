@@ -140,6 +140,8 @@ Changes to `docs/` or `mkdocs.yml` pushed to `main` auto-deploy to GitHub Pages.
 
 **IMPORTANT:** When asked to create a PR, open a PR, push to main, publish, release, or submit changes, **always use the `publish` skill**. It orchestrates the full workflow: local tests, lint, coverage, docs check, commit, push (or PR flow with proper branch naming), CI verification, and release. Do not manually run `gh pr create` or `git push origin main` — the skill handles all of this with the correct conventions.
 
+**CRITICAL — PR Review Process:** NEVER merge a PR until ALL review comments from ALL review rounds are addressed and resolved. After fixing comments, reply to each thread on the PR confirming the fix. Check for additional review rounds — Copilot and other reviewers may post follow-up comments after the initial review. Only merge when every comment thread is resolved.
+
 ## Demo Video
 
 The demo video lives in `packages/demo-video/` and is built with Remotion 4 + TypeScript + React, using the remotion agent skill "npx skills add remotion-dev/skills".

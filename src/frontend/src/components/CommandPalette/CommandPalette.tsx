@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { useUIStore } from '@/stores/uiStore';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useThemeStore } from '@/stores/themeStore';
-import { THEMES, type ThemeId } from '@/themes/terminalThemes';
+import { THEMES, TERMINAL_THEMES, type ThemeId } from '@/themes/terminalThemes';
 import { deleteSession, renameSession, fetchVersion, getShareUrl } from '@/services/api';
 import { playNotificationSound, setNotificationsEnabled } from '@/services/audio';
 import { isPushSubscribedSync } from '@/services/pushSubscription';
@@ -446,7 +446,12 @@ export default function CommandPalette() {
             </button>
           </div>
           <div className={styles.list}>
-            {THEMES.map((theme) => (
+            {THEMES.map((theme) => {
+              const t = TERMINAL_THEMES[theme.id];
+              const palette = t
+                ? [t.background, t.foreground, t.green, t.blue, t.red]
+                : [theme.bg, '#ccc', '#0f0', '#00f', '#f00'];
+              return (
               <button
                 key={theme.id}
                 className={styles.item}
@@ -457,21 +462,32 @@ export default function CommandPalette() {
               >
                 <span
                   style={{
-                    display: 'inline-block',
-                    width: 16,
+                    display: 'inline-flex',
+                    width: 32,
                     height: 16,
                     borderRadius: 4,
-                    background: theme.bg,
+                    overflow: 'hidden',
                     border: '1px solid var(--border, #555)',
                     flexShrink: 0,
                   }}
-                />
+                >
+                  {palette.map((color, i) => (
+                    <span
+                      key={i}
+                      style={{
+                        flex: 1,
+                        background: color,
+                      }}
+                    />
+                  ))}
+                </span>
                 <span>{theme.name}</span>
                 {theme.id === themeId && (
                   <span style={{ marginLeft: 'auto', fontSize: 12, opacity: 0.6 }}>✓</span>
                 )}
               </button>
-            ))}
+              );
+            })}
           </div>
         </div>
         <AboutModal open={aboutOpen} onClose={() => setAboutOpen(false)} version={aboutVersion} />

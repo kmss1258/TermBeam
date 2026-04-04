@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { fetchSessions, deleteSession, fetchVersion, getShareUrl } from '@/services/api';
 import { useUIStore } from '@/stores/uiStore';
 import { useThemeStore } from '@/stores/themeStore';
-import { THEMES, type ThemeId } from '@/themes/terminalThemes';
+import { THEMES, TERMINAL_THEMES, type ThemeId } from '@/themes/terminalThemes';
 import type { Session } from '@/types';
 import UpdateBanner from '@/components/common/UpdateBanner';
 import TunnelBanner from '@/components/common/TunnelBanner';
@@ -222,17 +222,27 @@ export default function SessionsHub() {
             </button>
           </div>
           <div className={styles.themePanelList}>
-            {THEMES.map((theme) => (
+            {THEMES.map((theme) => {
+              const t = TERMINAL_THEMES[theme.id];
+              const palette = t
+                ? [t.background, t.foreground, t.green, t.blue, t.red]
+                : [theme.bg, '#ccc', '#0f0', '#00f', '#f00'];
+              return (
               <button
                 key={theme.id}
                 className={`${styles.themeOption} ${theme.id === themeId ? styles.themeOptionActive : ''}`}
                 onClick={() => setTheme(theme.id as ThemeId)}
               >
-                <span className={styles.themeSwatch} style={{ background: theme.bg }} />
+                <span className={styles.themePalette}>
+                  {palette.map((color, i) => (
+                    <span key={i} style={{ background: color }} />
+                  ))}
+                </span>
                 {theme.name}
                 {theme.id === themeId && <span className={styles.themeCheck}>✓</span>}
               </button>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
