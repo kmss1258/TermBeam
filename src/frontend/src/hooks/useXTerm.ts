@@ -129,6 +129,16 @@ export function useXTerm(options: UseXTermOptions = {}): UseXTermReturn {
           // Canvas not supported — DOM renderer fallback (default)
         }
       }
+      // On mobile, hide the xterm scrollbar so the FitAddon uses the full
+      // viewport width. The FitAddon measures scrollBarWidth via DOM
+      // (offsetWidth - clientWidth), so we must set the style BEFORE fit().
+      if (isMobileDevice) {
+        const vp = container.querySelector('.xterm-viewport') as HTMLElement | null;
+        if (vp) {
+          vp.style.scrollbarWidth = 'none';
+          vp.style.overflow = 'hidden auto';
+        }
+      }
       try {
         fit.fit();
       } catch {
