@@ -210,11 +210,10 @@ test.describe('New Session Modal — Hub Page', () => {
       timeout: 3_000,
     });
 
-    // Shell dropdown should have options loaded
+    // Shell dropdown should have options loaded (wait for async fetch)
     const shellSelect = page.locator('[data-testid="ns-shell"]');
     await expect(shellSelect).toBeVisible();
-    const optionCount = await shellSelect.locator('option').count();
-    expect(optionCount).toBeGreaterThan(0);
+    await expect(shellSelect.locator('option')).not.toHaveCount(0, { timeout: 5_000 });
 
     // Select first available shell and create
     await page.click('[data-testid="ns-create"]');
