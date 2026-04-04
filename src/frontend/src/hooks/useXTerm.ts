@@ -139,6 +139,9 @@ export function useXTerm(options: UseXTermOptions = {}): UseXTermReturn {
           vp.style.overflow = 'hidden auto';
         }
       }
+      // Set container background to match terminal background so any sub-cell
+      // gap on the right edge (xterm sizes to integer columns) is invisible.
+      container.style.background = theme.background;
       try {
         fit.fit();
       } catch {
@@ -280,7 +283,10 @@ export function useXTerm(options: UseXTermOptions = {}): UseXTermReturn {
   // Apply theme changes
   useEffect(() => {
     if (!termRef.current) return;
-    termRef.current.options.theme = getTerminalTheme(themeId);
+    const t = getTerminalTheme(themeId);
+    termRef.current.options.theme = t;
+    // Keep container background in sync so the sub-cell gap stays invisible
+    if (terminalRef.current) terminalRef.current.style.background = t.background;
   }, [themeId]);
 
   // Apply font size changes
