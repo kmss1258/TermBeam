@@ -240,7 +240,7 @@ describe('Preview proxy middleware', () => {
       });
       assert.strictEqual(receivedPath, '/hello');
 
-      // Test deep nested path (Express 5 *path returns array of segments)
+      // Test deep nested path
       await httpRequest({
         hostname: '127.0.0.1',
         port: inst.port,
@@ -248,6 +248,42 @@ describe('Preview proxy middleware', () => {
         method: 'GET',
       });
       assert.strictEqual(receivedPath, '/TermBeam/assets/stylesheets/main.min.css');
+    } finally {
+      upstream.close();
+    }
+  });
+
+  it('should preserve trailing slashes to avoid redirect loops', async () => {
+    if (!inst) inst = await startServer();
+
+    let receivedPath;
+    const upstream = http.createServer((req, res) => {
+      receivedPath = req.url;
+      res.writeHead(200, { 'Content-Type': 'text/plain' });
+      res.end('ok');
+    });
+    await new Promise((resolve) => upstream.listen(0, '127.0.0.1', resolve));
+    const upstreamPort = upstream.address().port;
+
+    try {
+      // Trailing slash must be forwarded — servers like mkdocs redirect
+      // /TermBeam → /TermBeam/ causing infinite loops if the slash is lost
+      await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: `/preview/${upstreamPort}/TermBeam/`,
+        method: 'GET',
+      });
+      assert.strictEqual(receivedPath, '/TermBeam/');
+
+      // No trailing slash should also be preserved as-is
+      await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: `/preview/${upstreamPort}/TermBeam`,
+        method: 'GET',
+      });
+      assert.strictEqual(receivedPath, '/TermBeam');
     } finally {
       upstream.close();
     }

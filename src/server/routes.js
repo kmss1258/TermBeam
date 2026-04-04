@@ -10,6 +10,15 @@ const log = require('../utils/logger');
 const rateLimit = require('express-rate-limit');
 
 const PUBLIC_DIR = path.join(__dirname, '..', '..', 'public');
+
+// Resolve a user-provided path relative to rootDir and verify it stays within bounds.
+// Returns the resolved path or null if it escapes rootDir.
+function safePath(rootDir, userPath) {
+  const resolved = path.resolve(rootDir, userPath);
+  if (!resolved.startsWith(rootDir + path.sep) && resolved !== rootDir) return null;
+  return resolved;
+}
+
 const uploadedFiles = new Map(); // id -> filepath
 
 const IMAGE_SIGNATURES = [
@@ -644,7 +653,10 @@ function setupRoutes(app, { auth, sessions, config, state, pushManager }) {
     }
 
     const rootDir = path.resolve(sessions.getSessionCwd(req.params.id));
-    const dir = path.resolve(rootDir, req.query.dir || '.');
+    const dir = safePath(rootDir, req.query.dir || '.');
+    if (!dir) {
+      return res.status(403).json({ error: 'Path is outside session directory' });
+    }
 
     const MAX_ENTRIES = 1000;
     try {
@@ -798,7 +810,10 @@ function setupRoutes(app, { auth, sessions, config, state, pushManager }) {
     }
 
     const rootDir = path.resolve(sessions.getSessionCwd(req.params.id));
-    const filePath = path.resolve(rootDir, file);
+    const filePath = safePath(rootDir, file);
+    if (!filePath) {
+      return res.status(403).json({ error: 'Path is outside session directory' });
+    }
 
     try {
       if (fs.lstatSync(filePath).isSymbolicLink()) {
@@ -829,7 +844,10 @@ function setupRoutes(app, { auth, sessions, config, state, pushManager }) {
     }
 
     const rootDir = path.resolve(sessions.getSessionCwd(req.params.id));
-    const filePath = path.resolve(rootDir, file);
+    const filePath = safePath(rootDir, file);
+    if (!filePath) {
+      return res.status(403).json({ error: 'Path is outside session directory' });
+    }
 
     try {
       if (fs.lstatSync(filePath).isSymbolicLink()) {
@@ -860,7 +878,10 @@ function setupRoutes(app, { auth, sessions, config, state, pushManager }) {
     }
 
     const rootDir = path.resolve(sessions.getSessionCwd(req.params.id));
-    const filePath = path.resolve(rootDir, file);
+    const filePath = safePath(rootDir, file);
+    if (!filePath) {
+      return res.status(403).json({ error: 'Path is outside session directory' });
+    }
 
     try {
       if (fs.lstatSync(filePath).isSymbolicLink()) {

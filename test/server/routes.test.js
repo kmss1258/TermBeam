@@ -1504,6 +1504,19 @@ describe('Routes', () => {
       const data = JSON.parse(res.data);
       assert.strictEqual(fs.realpathSync(data.rootDir), fs.realpathSync(tmpDir));
     });
+
+    it('should return 403 for directory traversal attempts', async () => {
+      await setup();
+      const res = await httpRequest({
+        hostname: '127.0.0.1',
+        port: inst.port,
+        path: `/api/sessions/${inst.defaultId}/files?dir=${encodeURIComponent('../../')}`,
+        method: 'GET',
+      });
+      assert.strictEqual(res.statusCode, 403);
+      const data = JSON.parse(res.data);
+      assert.strictEqual(data.error, 'Path is outside session directory');
+    });
   });
 
   // === File download endpoint ===
@@ -1621,6 +1634,21 @@ describe('Routes', () => {
         res.headers['content-disposition'].includes('test.txt'),
         'Content-Disposition should include filename',
       );
+    });
+
+    it('should return 403 for path traversal attempts', async () => {
+      await setup();
+      for (const payload of ['../../etc/passwd', '../../../etc/shadow']) {
+        const res = await httpRequest({
+          hostname: '127.0.0.1',
+          port: inst.port,
+          path: `/api/sessions/${inst.defaultId}/download?file=${encodeURIComponent(payload)}`,
+          method: 'GET',
+        });
+        assert.strictEqual(res.statusCode, 403, `Expected 403 for payload: ${payload}`);
+        const data = JSON.parse(res.data);
+        assert.strictEqual(data.error, 'Path is outside session directory');
+      }
     });
   });
 
@@ -1756,6 +1784,21 @@ describe('Routes', () => {
       assert.strictEqual(res.statusCode, 413);
       const data = JSON.parse(res.data);
       assert.strictEqual(data.error, 'File too large (max 2 MB)');
+    });
+
+    it('should return 403 for path traversal attempts', async () => {
+      await setup();
+      for (const payload of ['../../etc/passwd', '../../../etc/shadow']) {
+        const res = await httpRequest({
+          hostname: '127.0.0.1',
+          port: inst.port,
+          path: `/api/sessions/${inst.defaultId}/file-content?file=${encodeURIComponent(payload)}`,
+          method: 'GET',
+        });
+        assert.strictEqual(res.statusCode, 403, `Expected 403 for payload: ${payload}`);
+        const data = JSON.parse(res.data);
+        assert.strictEqual(data.error, 'Path is outside session directory');
+      }
     });
   });
 

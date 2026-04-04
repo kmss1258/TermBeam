@@ -32,10 +32,12 @@ function createPreviewProxy() {
         .json({ error: 'Invalid port: must be an integer between 1 and 65535' });
     }
 
-    // Strip /preview/:port prefix, keep the rest (or default to /)
-    // Express 5 *path returns an array of segments — join them back
-    const segments = req.params.path;
-    const forwardPath = segments ? `/${[].concat(segments).join('/')}` : '/';
+    // Derive forward path from req.url to preserve trailing slashes.
+    // Express *path params lose trailing slashes, causing redirect loops
+    // with servers that enforce them (e.g. mkdocs: /TermBeam → /TermBeam/).
+    const portPrefix = `/${req.params.port}`;
+    const urlWithoutQuery = req.url.split('?')[0];
+    const forwardPath = urlWithoutQuery.slice(portPrefix.length) || '/';
     const search = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
 
     const fwdHeaders = { ...req.headers, host: `127.0.0.1:${port}` };
