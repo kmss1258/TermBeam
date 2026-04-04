@@ -5,6 +5,7 @@ const AGENT_COLORS: Record<string, string> = {
   claude: '#cc785c',
   aider: '#4a9eff',
   codex: '#888',
+  opencode: '#e8a838',
 };
 
 interface AgentIconProps {

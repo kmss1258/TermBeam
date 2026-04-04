@@ -449,8 +449,8 @@ export default function CommandPalette() {
             {THEMES.map((theme) => {
               const t = TERMINAL_THEMES[theme.id];
               const palette = t
-                ? [t.background, t.foreground, t.green, t.blue, t.red]
-                : [theme.bg, '#ccc', '#0f0', '#00f', '#f00'];
+                ? [t.background, t.cursor, t.magenta, t.cyan, t.yellow]
+                : [theme.bg, '#ccc', '#f0f', '#0ff', '#ff0'];
               return (
               <button
                 key={theme.id}

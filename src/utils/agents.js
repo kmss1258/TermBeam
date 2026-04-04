@@ -39,6 +39,13 @@ const KNOWN_AGENTS = [
     icon: 'codex',
     detect: ['codex', ['--version']],
   },
+  {
+    id: 'opencode',
+    name: 'OpenCode',
+    cmd: 'opencode',
+    icon: 'opencode',
+    detect: ['opencode', ['--version']],
+  },
 ];
 
 let cachedAgents = null;

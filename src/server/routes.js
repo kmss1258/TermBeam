@@ -397,7 +397,7 @@ function setupRoutes(app, { auth, sessions, config, state, pushManager }) {
     (req, res) => {
       const { agent, id } = req.params;
       // Validate agent is a known value
-      if (!['copilot', 'claude'].includes(agent)) {
+      if (!['copilot', 'claude', 'opencode'].includes(agent)) {
         return res.status(400).json({ error: 'Unknown agent' });
       }
       // Validate id is a UUID-like string

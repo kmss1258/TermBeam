@@ -175,6 +175,56 @@ function readClaudeSessions(limit = 50) {
 }
 
 /**
+ * Read OpenCode sessions from SQLite store.
+ * DB at ~/.local/share/opencode/opencode.db
+ */
+function readOpenCodeSessions(limit = 50) {
+  let Database;
+  try {
+    Database = require('better-sqlite3');
+  } catch {
+    return [];
+  }
+  const dbPath = path.join(os.homedir(), '.local', 'share', 'opencode', 'opencode.db');
+  if (!fs.existsSync(dbPath)) return [];
+
+  try {
+    const db = new Database(dbPath, { readonly: true, fileMustExist: true });
+    const sessions = db
+      .prepare(
+        `
+      SELECT s.id, s.title, s.directory, s.time_created, s.time_updated,
+             (SELECT COUNT(*) FROM message m WHERE m.session_id = s.id) as msg_count
+      FROM session s
+      WHERE s.time_archived IS NULL
+      ORDER BY s.time_updated DESC
+      LIMIT ?
+    `,
+      )
+      .all(limit);
+    db.close();
+
+    return sessions
+      .filter((s) => s.msg_count > 0)
+      .map((s) => ({
+        id: s.id,
+        agent: 'opencode',
+        agentName: 'OpenCode',
+        agentIcon: 'opencode',
+        summary: s.title || null,
+        cwd: s.directory || null,
+        repo: null,
+        branch: null,
+        updatedAt: s.time_updated || s.time_created || null,
+        turnCount: s.msg_count || 0,
+      }));
+  } catch (err) {
+    log.warn(`Failed to read OpenCode sessions: ${err.message}`);
+    return [];
+  }
+}
+
+/**
  * Get all agent sessions from all sources, unified and sorted.
  */
 async function getAgentSessions({ limit = 100, agent = null, search = null } = {}) {
@@ -185,6 +235,9 @@ async function getAgentSessions({ limit = 100, agent = null, search = null } = {
   }
   if (!agent || agent === 'claude') {
     results.push(...readClaudeSessions(limit));
+  }
+  if (!agent || agent === 'opencode') {
+    results.push(...readOpenCodeSessions(limit));
   }
 
   // Sort all by updatedAt descending
@@ -211,16 +264,25 @@ async function getAgentSessions({ limit = 100, agent = null, search = null } = {
  */
 function getResumeCommand(session) {
   // Validate session ID to prevent command injection
-  if (!/^[a-f0-9-]{8,}$/i.test(session.id)) return null;
+  // UUID format for copilot/claude, ses_xxx format for opencode
+  if (!/^[a-z0-9_-]{8,}$/i.test(session.id)) return null;
 
   switch (session.agent) {
     case 'copilot':
       return `copilot --resume=${session.id}`;
     case 'claude':
       return `claude --resume ${session.id}`;
+    case 'opencode':
+      return `opencode --session ${session.id}`;
     default:
       return null;
   }
 }
 
-module.exports = { getAgentSessions, getResumeCommand, readCopilotSessions, readClaudeSessions };
+module.exports = {
+  getAgentSessions,
+  getResumeCommand,
+  readCopilotSessions,
+  readClaudeSessions,
+  readOpenCodeSessions,
+};

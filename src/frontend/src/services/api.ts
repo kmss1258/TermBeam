@@ -104,7 +104,7 @@ export async function fetchAgents(): Promise<{ agents: AgentInfo[] }> {
 
 export interface AgentSession {
   id: string;
-  agent: 'copilot' | 'claude';
+  agent: 'copilot' | 'claude' | 'opencode';
   agentName: string;
   agentIcon: string;
   summary: string | null;

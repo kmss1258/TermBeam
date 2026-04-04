@@ -21,7 +21,7 @@ function formatTimeAgo(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString();
 }
 
-type AgentFilter = 'all' | 'copilot' | 'claude';
+type AgentFilter = 'all' | 'copilot' | 'claude' | 'opencode';
 
 export default function ResumeBrowser() {
   const { resumeBrowserOpen, closeResumeBrowser } = useUIStore();
@@ -155,6 +155,7 @@ export default function ResumeBrowser() {
 
   const copilotCount = sessions.filter((s) => s.agent === 'copilot').length;
   const claudeCount = sessions.filter((s) => s.agent === 'claude').length;
+  const opencodeCount = sessions.filter((s) => s.agent === 'opencode').length;
 
   return (
     <div className={styles.page}>
@@ -212,6 +213,14 @@ export default function ResumeBrowser() {
             onClick={() => setFilter('claude')}
           >
             Claude ({claudeCount})
+          </button>
+        )}
+        {opencodeCount > 0 && (
+          <button
+            className={`${styles.tab} ${filter === 'opencode' ? styles.tabActive : ''}`}
+            onClick={() => setFilter('opencode')}
+          >
+            OpenCode ({opencodeCount})
           </button>
         )}
       </div>
