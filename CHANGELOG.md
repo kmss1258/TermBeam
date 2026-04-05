@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.19.5] - 2026-04-05
+
+- feat(landing): add theme switcher to hub video, fix voice to paste not type
+
 ## [1.19.4] - 2026-04-05
 
 - feat(landing): re-record showcase videos with real UI interactions
