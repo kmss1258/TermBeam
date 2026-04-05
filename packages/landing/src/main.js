@@ -364,9 +364,34 @@ document.addEventListener('DOMContentLoaded', () => {
   initScrollReveal();
   initNavScroll();
   initShowcase();
+  // Pause videos for reduced motion preference
+  if (reducedMotion) {
+    document.querySelectorAll('video[autoplay]').forEach((v) => {
+      v.removeAttribute('autoplay');
+      v.pause();
+    });
+  }
+
   if (!reducedMotion) {
     initDeviceTilt();
     initHeroParallax();
+
+    // Play videos only when visible
+    const videoObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.target.tagName === 'VIDEO') {
+            if (entry.isIntersecting) {
+              entry.target.play().catch(() => {});
+            } else {
+              entry.target.pause();
+            }
+          }
+        });
+      },
+      { threshold: 0.25 },
+    );
+    document.querySelectorAll('.feature video').forEach((v) => videoObserver.observe(v));
   }
   initCopyButton();
   initMobileNav();
