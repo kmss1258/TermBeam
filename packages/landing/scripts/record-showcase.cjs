@@ -145,9 +145,9 @@ async function cleanupSessions() {
 // Recording functions — each showcases the ACTUAL UI feature
 // ---------------------------------------------------------------------------
 
-// 01: Sessions Hub → click a session → view its terminal
+// 01: Sessions Hub → theme switcher → click a session → view its terminal
 async function recordHubMobile(browser) {
-  console.log('Recording hub-mobile — Sessions Hub → open session...');
+  console.log('Recording hub-mobile — Sessions Hub → themes → open session...');
   await cleanupSessions();
   const sessions = [];
   for (const name of ['api-server', 'frontend', 'deploy']) {
@@ -163,12 +163,34 @@ async function recordHubMobile(browser) {
 
     const capture = await startCapture(page);
     // Show the hub with session cards
-    await page.waitForTimeout(1800);
+    await page.waitForTimeout(1200);
+
+    // Open theme picker
+    const themeBtn = page.locator('button[aria-label="Change theme"]');
+    await themeBtn.click().catch(() => {});
+    await page.waitForTimeout(800);
+
+    // Switch through visually distinct themes
+    const themes = ['Dracula', 'Cyberpunk', 'Nord', 'Catppuccin'];
+    for (const theme of themes) {
+      const row = page.locator('button', { hasText: theme }).first();
+      await row.click().catch(() => {});
+      await page.waitForTimeout(700);
+    }
+
+    // Close theme panel
+    const closeBtn = page.locator('button[aria-label="Close theme picker"]');
+    await closeBtn.click().catch(() => {
+      // fallback: press Escape or click outside
+      page.keyboard.press('Escape').catch(() => {});
+    });
+    await page.waitForTimeout(600);
+
     // Click a session card to open its terminal
     const card = page.locator('[data-testid="session-card"]').first();
     await card.click().catch(() => {});
     // Wait for terminal to load
-    await page.waitForTimeout(2500);
+    await page.waitForTimeout(2000);
     await saveVideo(capture, 'hub-mobile.mp4');
     await context.close();
   } finally {
@@ -269,13 +291,52 @@ async function recordTerminalMobile(browser) {
   }
 }
 
-// 04: Voice — press mic, then paste a predefined message as if dictated
+// 04: Voice — press mic, speech recognition fires, text appears instantly
 async function recordVoiceMobile(browser) {
-  console.log('Recording voice-mobile — Mic press → voice dictation...');
+  console.log('Recording voice-mobile — Mic press → voice dictation (pasted)...');
   await cleanupSessions();
   const session = await createSession('voice-demo');
   const context = await openContext(browser, MOBILE);
   const page = await context.newPage();
+
+  // Mock SpeechRecognition so pressing mic triggers a "dictated" command
+  await page.addInitScript(() => {
+    class MockSpeechRecognition {
+      constructor() {
+        this.continuous = false;
+        this.interimResults = false;
+        this.lang = 'en-US';
+        this.onresult = null;
+        this.onerror = null;
+        this.onend = null;
+      }
+      start() {
+        // After a delay simulating recognition processing, fire the result
+        setTimeout(() => {
+          if (this.onresult) {
+            this.onresult({
+              results: {
+                0: { 0: { transcript: 'git status && echo "all clean"' }, isFinal: true },
+                length: 1,
+              },
+              resultIndex: 0,
+            });
+          }
+          setTimeout(() => {
+            if (this.onend) this.onend();
+          }, 200);
+        }, 1200);
+      }
+      stop() {
+        if (this.onend) this.onend();
+      }
+      abort() {
+        if (this.onend) this.onend();
+      }
+    }
+    window.SpeechRecognition = MockSpeechRecognition;
+    window.webkitSpeechRecognition = MockSpeechRecognition;
+  });
 
   try {
     await page.goto(`${BASE_URL}/terminal?session=${session.id}`, {
@@ -290,20 +351,19 @@ async function recordVoiceMobile(browser) {
 
     const capture = await startCapture(page);
     await page.waitForTimeout(600);
-    // Press and hold mic button to show recording state
+    // Press and hold mic button — mock SpeechRecognition fires after 1.2s
     const micBtn = page.locator('[data-testid="mic-btn"]');
     await micBtn.waitFor({ timeout: 5000 }).catch(() => {});
     const box = await micBtn.boundingBox();
     if (box) {
       await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
       await page.mouse.down();
-      await page.waitForTimeout(1800);
+      // Hold while "recognizing" — the mock fires onresult after 1.2s
+      await page.waitForTimeout(2000);
       await page.mouse.up();
     }
-    await page.waitForTimeout(400);
-    // Simulate voice result: type the "dictated" command
-    await focusTerminal(page, 2000);
-    await page.keyboard.type('git status', { delay: 80 });
+    // Wait for the dictated text to appear and command to run
+    await page.waitForTimeout(2000);
     await page.keyboard.press('Enter');
     await page.waitForTimeout(1500);
     await saveVideo(capture, 'voice-mobile.mp4');
