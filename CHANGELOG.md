@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.19.4] - 2026-04-05
+
+- feat(landing): re-record showcase videos with real UI interactions
+- fix(landing): re-record videos at 2x resolution with high quality
+- fix(landing): re-record videos showing real UI features
+- feat(landing): replace showcase images with autoplay video clips
+- fix(landing): extend noise overlay to prevent edge artifacts
+- fix(landing): remove subtle border lines between feature sections
+- fix(landing): add showcase images to repo
+- feat(landing): section-based showcase redesign with correct logos
+- fix(landing): improve a11y — add main landmark, fix footer contrast
+- docs: update screenshots and landing page features
+
 ## [1.19.3] - 2026-04-04
 
 - fix(security): prevent path traversal in file endpoints and fix preview redirect loop
