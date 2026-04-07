@@ -1,10 +1,11 @@
 {
   "name": "termbeam-mobile",
-  "version": "1.19.5",
+  "version": "1.19.6",
   "description": "Beam your terminal to any device — mobile-optimized web terminal with multi-session support",
   "main": "src/server/index.js",
   "bin": {
-    "termbeam": "./bin/termbeam.js"
+    "termbeam": "./bin/termbeam.js",
+    "termbeam-mobile": "./bin/termbeam.js"
   },
   "scripts": {
     "start": "node bin/termbeam.js",
