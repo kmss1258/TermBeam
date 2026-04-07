@@ -22,7 +22,7 @@ interface KeyDef {
   action?: 'copy' | 'paste';
 }
 
-// Row 1: Esc, Copy, Paste, Home, End, ↑, ↵
+// Row 1: Esc, Copy, Paste, Home, End, ↑, ↵, ⌨
 const ROW1: KeyDef[] = [
   { label: 'Esc', data: '\x1b', type: 'special' },
   { label: 'Copy', data: '', type: 'special', action: 'copy' },
@@ -31,6 +31,7 @@ const ROW1: KeyDef[] = [
   { label: 'End', data: '\x1b[F', type: 'special' },
   { label: '↑', data: '\x1b[A', type: 'icon' },
   { label: '↵', data: '\r', type: 'enter' },
+  { label: '⌨', data: '', type: 'special' },
 ];
 
 // Row 2: Ctrl, Shift, Tab, ^C, ←, ↓, →
@@ -95,7 +96,6 @@ const SWIPE_THRESHOLD = 10;
 export default function TouchBar() {
   const ctrlActive = useUIStore((s) => s.touchCtrlActive);
   const shiftActive = useUIStore((s) => s.touchShiftActive);
-  const mobileInputOpen = useUIStore((s) => s.mobileInputOpen);
   const toggleMobileInput = useUIStore((s) => s.toggleMobileInput);
   const setCtrlActive = useUIStore((s) => s.setTouchCtrl);
   const setShiftActive = useUIStore((s) => s.setTouchShift);
@@ -290,6 +290,12 @@ export default function TouchBar() {
         return;
       }
 
+      // Toggle mobile input panel
+      if (def.label === '⌨') {
+        toggleMobileInput();
+        return;
+      }
+
       const data = resolveKeyData(def);
       if (data === null) return;
 
@@ -308,7 +314,7 @@ export default function TouchBar() {
       if (ctrlActive) setCtrlActive(false);
       if (shiftActive) setShiftActive(false);
     },
-    [resolveKeyData, flash, ctrlActive, shiftActive, handleCopy, handlePaste],
+    [resolveKeyData, flash, ctrlActive, shiftActive, handleCopy, handlePaste, toggleMobileInput],
   );
 
   const handleMouseDown = useCallback(
@@ -434,13 +440,6 @@ export default function TouchBar() {
       <div className={styles.row}>{ROW1.map(renderKey)}</div>
       <div className={styles.row}>
         {ROW2.map(renderKey)}
-        <button
-          className={`${styles.keyBtn} ${styles.special} ${mobileInputOpen ? styles.active : ''}`}
-          onClick={() => toggleMobileInput()}
-          aria-label="Toggle text input"
-        >
-          ⌨
-        </button>
         {SpeechRecognitionAPI && (
           <button
             className={`${styles.keyBtn} ${styles.special} ${styles.micBtn} ${isRecording ? styles.recording : ''} ${micLocked ? styles.micLocked : ''}`}

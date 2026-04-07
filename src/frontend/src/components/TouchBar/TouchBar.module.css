@@ -68,7 +68,6 @@
 }
 
 .keyEnter {
-  grid-column: span 2;
   background: var(--accent, #0078d4);
   color: #fff;
   font-size: 20px;
