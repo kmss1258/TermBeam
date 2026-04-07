@@ -134,8 +134,6 @@ export default function MobileInputPanel() {
           <button onClick={() => handleSpecialKey('\x1b[A')}>↑</button>
           <button onClick={() => handleSpecialKey('\x1b[B')}>↓</button>
           <button onClick={() => handleSpecialKey('\x1b[C')}>→</button>
-          <button onClick={() => handleSpecialKey('\x1b[H')}>Home</button>
-          <button onClick={() => handleSpecialKey('\x1b[F')}>End</button>
         </div>
 
         <div className={styles.numberRow}>
