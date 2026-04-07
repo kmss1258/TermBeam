@@ -32,6 +32,7 @@ interface UIState {
   fontSize: number;
   touchCtrlActive: boolean;
   touchShiftActive: boolean;
+  mobileInputOpen: boolean;
   resumeBrowserOpen: boolean;
   codeViewerOpen: boolean;
   codeViewerSessionId: string | null;
@@ -62,6 +63,7 @@ interface UIState {
   setFontSize: (size: number) => void;
   setTouchCtrl: (active: boolean) => void;
   setTouchShift: (active: boolean) => void;
+  toggleMobileInput: () => void;
   openCodeViewer: (sessionId: string, initialView?: 'files' | 'changes') => void;
   closeCodeViewer: () => void;
 }
@@ -80,6 +82,7 @@ export const useUIStore = create<UIState>((set) => ({
   fontSize: loadFontSize(),
   touchCtrlActive: false,
   touchShiftActive: false,
+  mobileInputOpen: false,
   resumeBrowserOpen: false,
   codeViewerOpen: false,
   codeViewerSessionId: null,
@@ -118,8 +121,13 @@ export const useUIStore = create<UIState>((set) => ({
   },
   setTouchCtrl: (active) => set({ touchCtrlActive: active }),
   setTouchShift: (active) => set({ touchShiftActive: active }),
+  toggleMobileInput: () => set((s) => ({ mobileInputOpen: !s.mobileInputOpen })),
   openCodeViewer: (sessionId, initialView = 'files') =>
-    set({ codeViewerOpen: true, codeViewerSessionId: sessionId, codeViewerInitialView: initialView }),
+    set({
+      codeViewerOpen: true,
+      codeViewerSessionId: sessionId,
+      codeViewerInitialView: initialView,
+    }),
   closeCodeViewer: () =>
     set({ codeViewerOpen: false, codeViewerSessionId: null, codeViewerInitialView: 'files' }),
 }));

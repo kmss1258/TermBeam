@@ -8,6 +8,7 @@ import { useMobileKeyboard } from '@/hooks/useMobileKeyboard';
 import { TerminalPane } from '@/components/TerminalPane/TerminalPane';
 import { TabBar } from '@/components/TabBar/TabBar';
 import TouchBar from '@/components/TouchBar/TouchBar';
+import MobileInputPanel from '@/components/MobileInputPanel/MobileInputPanel';
 import SearchBar from '@/components/SearchBar/SearchBar';
 import CommandPalette from '@/components/CommandPalette/CommandPalette';
 import { SidePanel } from '@/components/SidePanel/SidePanel';
@@ -494,6 +495,9 @@ export function TerminalApp() {
 
       {/* ── Touch bar (key bar) ── */}
       <TouchBar />
+
+      {/* ── Mobile text input panel ── */}
+      <MobileInputPanel />
 
       {/* ── Overlays ── */}
       <CommandPalette />
