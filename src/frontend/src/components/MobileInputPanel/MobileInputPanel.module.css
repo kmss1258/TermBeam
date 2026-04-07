@@ -36,7 +36,7 @@
   background: var(--surface, #1e1e2e);
   border-top-left-radius: 8px;
   border-top-right-radius: 8px;
-  padding: 4px 4px 6px;
+  padding: 6px 4px;
   padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
   animation: slideUp 0.2s ease-out;
 }
@@ -64,24 +64,26 @@
 }
 
 .inputRow {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
   gap: 4px;
   align-items: center;
   margin-bottom: 4px;
+  padding: 0 2px;
 }
 
 .textInput {
-  flex: 1;
   height: 34px;
   padding: 0 10px;
   border-radius: 6px;
   border: 1px solid var(--key-border, #333);
-  background: var(--input-bg, #2a2a3e);
+  background: var(--key-bg, #2a2a3e);
   color: var(--text, #e0e0e0);
-  font-size: 14px;
+  font-size: 13px;
   font-family: inherit;
   outline: none;
   -webkit-appearance: none;
+  box-shadow: 0 1px 0 var(--key-shadow, rgba(0, 0, 0, 0.3));
 }
 
 .textInput:focus {
@@ -89,7 +91,7 @@
 }
 
 .sendBtn {
-  width: 34px;
+  width: 44px;
   height: 34px;
   border-radius: 6px;
   border: none;
@@ -101,11 +103,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
 }
 
 .closeBtn {
-  width: 34px;
+  width: 44px;
   height: 34px;
   border-radius: 6px;
   border: 1px solid var(--key-border, #333);
@@ -116,28 +118,28 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+  box-shadow: 0 1px 0 var(--key-shadow, rgba(0, 0, 0, 0.3));
 }
 
 .specialKeys {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
   gap: 4px;
-  flex-wrap: wrap;
-  justify-content: center;
+  padding: 0 2px;
 }
 
 .specialKeys button {
-  height: 30px;
-  min-width: 36px;
-  padding: 0 8px;
+  height: 34px;
   border-radius: 6px;
   border: 1px solid var(--key-border, #333);
   background: var(--key-bg, #2a2a3e);
   color: var(--text, #e0e0e0);
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
   font-family: inherit;
+  box-shadow: 0 1px 0 var(--key-shadow, rgba(0, 0, 0, 0.3));
+  -webkit-tap-highlight-color: transparent;
 }
 
 .specialKeys button.danger {
@@ -146,23 +148,23 @@
 }
 
 .numberRow {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
   gap: 4px;
-  flex-wrap: wrap;
-  justify-content: center;
+  padding: 0 2px;
   margin-top: 4px;
 }
 
 .numberRow button {
-  height: 30px;
-  min-width: 36px;
-  padding: 0 8px;
+  height: 34px;
   border-radius: 6px;
   border: 1px solid var(--key-border, #333);
   background: var(--key-bg, #2a2a3e);
   color: var(--text, #e0e0e0);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   font-family: inherit;
+  box-shadow: 0 1px 0 var(--key-shadow, rgba(0, 0, 0, 0.3));
+  -webkit-tap-highlight-color: transparent;
 }
