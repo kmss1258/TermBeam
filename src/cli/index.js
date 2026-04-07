@@ -2,6 +2,8 @@ const os = require('os');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+
+const DEFAULT_PASSWORD = 'sooperdooper123!';
 const log = require('../utils/logger');
 
 function printHelp() {
@@ -324,9 +326,8 @@ function parseArgs() {
     process.exit(1);
   }
 
-  // Default: auto-generate password if none specified
   if (!explicitPassword && !password) {
-    password = crypto.randomBytes(16).toString('base64url');
+    password = DEFAULT_PASSWORD;
   }
 
   // --no-tunnel disables the default tunnel
