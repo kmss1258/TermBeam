@@ -427,26 +427,10 @@ export default function TouchBar() {
     </button>
   );
 
-  // When keyboard is open, extend the touchbar downward to fill the gap
-  // between the key buttons and the keyboard (no floating look)
-  const touchBarStyle: React.CSSProperties =
-    keyboardHeight > 0
-      ? {
-          height: `${80 + keyboardHeight}px`,
-          paddingBottom: `${keyboardHeight}px`,
-        }
-      : {};
-
-  // In tight landscape, hide the touchbar when the keyboard is open to
-  // maximize terminal space. The on-screen keyboard already provides keys.
-  const isLandscapeTight =
-    typeof window !== 'undefined' &&
-    (window.matchMedia?.('(orientation: landscape) and (max-height: 500px)')?.matches ?? false);
-
-  if (keyboardOpen && isLandscapeTight) return null;
+  if (keyboardOpen) return null;
 
   return (
-    <div className={styles.touchBar} style={touchBarStyle}>
+    <div className={styles.touchBar}>
       <div className={styles.row}>{ROW1.map(renderKey)}</div>
       <div className={styles.row}>
         {ROW2.map(renderKey)}
