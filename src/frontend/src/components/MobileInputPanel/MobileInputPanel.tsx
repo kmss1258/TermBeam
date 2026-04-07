@@ -3,18 +3,31 @@ import { useSessionStore } from '@/stores/sessionStore';
 import { useUIStore } from '@/stores/uiStore';
 import styles from './MobileInputPanel.module.css';
 
+const CLOSE_ANIM_MS = 200;
+
 export default function MobileInputPanel() {
   const [text, setText] = useState('');
+  const [closing, setClosing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const open = useUIStore((s) => s.mobileInputOpen);
   const toggleMobileInput = useUIStore((s) => s.toggleMobileInput);
 
   useEffect(() => {
     if (open) {
+      setClosing(false);
       const timer = setTimeout(() => inputRef.current?.focus(), 100);
       return () => clearTimeout(timer);
     }
   }, [open]);
+
+  const handleClose = useCallback(() => {
+    setClosing(true);
+    setTimeout(() => {
+      toggleMobileInput();
+      setClosing(false);
+      setText('');
+    }, CLOSE_ANIM_MS);
+  }, [toggleMobileInput]);
 
   const sendInput = useCallback((data: string) => {
     const { sessions, activeId } = useSessionStore.getState();
@@ -51,11 +64,17 @@ export default function MobileInputPanel() {
     [sendInput],
   );
 
-  if (!open) return null;
+  if (!open && !closing) return null;
 
   return (
-    <div className={styles.overlay} onClick={toggleMobileInput}>
-      <div className={styles.panel} onClick={(e) => e.stopPropagation()}>
+    <div
+      className={`${styles.overlay} ${closing ? styles.overlayClosing : ''}`}
+      onClick={handleClose}
+    >
+      <div
+        className={`${styles.panel} ${closing ? styles.panelClosing : ''}`}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className={styles.inputRow}>
           <input
             ref={inputRef}
@@ -73,7 +92,7 @@ export default function MobileInputPanel() {
           <button className={styles.sendBtn} onClick={handleSend} aria-label="Send">
             ↵
           </button>
-          <button className={styles.closeBtn} onClick={toggleMobileInput} aria-label="Close">
+          <button className={styles.closeBtn} onClick={handleClose} aria-label="Close">
             ✕
           </button>
         </div>

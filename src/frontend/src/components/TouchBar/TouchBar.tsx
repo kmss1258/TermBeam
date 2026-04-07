@@ -34,15 +34,30 @@ const ROW1: KeyDef[] = [
   { label: '⌨', data: '', type: 'special' },
 ];
 
-// Row 2: Ctrl, Shift, Tab, ^C, ←, ↓, →
+// Row 2: Ctrl, Shift, Tab, ^C, ^B, ←, ↓, →
 const ROW2: KeyDef[] = [
   { label: 'Ctrl', data: '', type: 'modifier', modifier: 'ctrl' },
   { label: 'Shift', data: '', type: 'modifier', modifier: 'shift' },
   { label: 'Tab', data: '\x09', type: 'special' },
   { label: '^C', data: '\x03', type: 'danger' },
+  { label: '^B', data: '\x02', type: 'special' },
   { label: '←', data: '\x1b[D', type: 'icon' },
   { label: '↓', data: '\x1b[B', type: 'icon' },
   { label: '→', data: '\x1b[C', type: 'icon' },
+];
+
+// Row 3: 0~9 number keys (for tmux prefix)
+const ROW3: KeyDef[] = [
+  { label: '0', data: '0', type: 'special' },
+  { label: '1', data: '1', type: 'special' },
+  { label: '2', data: '2', type: 'special' },
+  { label: '3', data: '3', type: 'special' },
+  { label: '4', data: '4', type: 'special' },
+  { label: '5', data: '5', type: 'special' },
+  { label: '6', data: '6', type: 'special' },
+  { label: '7', data: '7', type: 'special' },
+  { label: '8', data: '8', type: 'special' },
+  { label: '9', data: '9', type: 'special' },
 ];
 
 const ARROW_MAP: Record<string, string> = {
@@ -538,6 +553,7 @@ export default function TouchBar() {
           </button>
         )}
       </div>
+      <div className={`${styles.row} ${styles.rowNumbers}`}>{ROW3.map(renderKey)}</div>
     </div>
   );
 }
