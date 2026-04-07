@@ -9,6 +9,7 @@ export default function MobileInputPanel() {
   const [text, setText] = useState('');
   const [closing, setClosing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const open = useUIStore((s) => s.mobileInputOpen);
   const toggleMobileInput = useUIStore((s) => s.toggleMobileInput);
 
@@ -19,6 +20,30 @@ export default function MobileInputPanel() {
       return () => clearTimeout(timer);
     }
   }, [open]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+
+    if (!open && !closing) {
+      root.style.removeProperty('--mobile-input-height');
+      return;
+    }
+
+    const updateHeight = () => {
+      const height = panelRef.current?.offsetHeight ?? 0;
+      root.style.setProperty('--mobile-input-height', `${height}px`);
+    };
+
+    updateHeight();
+
+    const observer = new ResizeObserver(updateHeight);
+    if (panelRef.current) observer.observe(panelRef.current);
+
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty('--mobile-input-height');
+    };
+  }, [open, closing]);
 
   const handleClose = useCallback(() => {
     setClosing(true);
@@ -50,10 +75,18 @@ export default function MobileInputPanel() {
     (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
         e.preventDefault();
-        handleSend();
+        e.stopPropagation();
+        const currentValue = inputRef.current?.value ?? text;
+        if (currentValue) {
+          sendInput(currentValue);
+          setText('');
+        } else {
+          sendInput('\r');
+        }
+        inputRef.current?.focus();
       }
     },
-    [handleSend],
+    [text, sendInput],
   );
 
   const handleSpecialKey = useCallback(
@@ -72,6 +105,7 @@ export default function MobileInputPanel() {
       onClick={handleClose}
     >
       <div
+        ref={panelRef}
         className={`${styles.panel} ${closing ? styles.panelClosing : ''}`}
         onClick={(e) => e.stopPropagation()}
       >
