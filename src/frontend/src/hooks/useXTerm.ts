@@ -34,6 +34,14 @@ export function useXTerm(options: UseXTermOptions = {}): UseXTermReturn {
   const customFitRef = useRef<() => void>(() => {});
   const searchRef = useRef<SearchAddon | null>(null);
 
+  // IME composition state — buffers input during Korean/CJK IME composition
+  // to prevent individual jamo from being sent to the PTY.
+  // xterm.js's onData fires for each keystroke, including pre-composition
+  // jamo. We track compositionstart/end on the hidden textarea and only
+  // forward the final committed character from compositionend.
+  const isComposingRef = useRef(false);
+  const compositionBufferRef = useRef('');
+
   const [terminal, setTerminal] = useState<Terminal | null>(null);
   const [fitAddon, setFitAddon] = useState<FitAddon | null>(null);
   const [searchAddon, setSearchAddon] = useState<SearchAddon | null>(null);
@@ -58,14 +66,20 @@ export function useXTerm(options: UseXTermOptions = {}): UseXTermReturn {
       const fa = fitRef.current;
       if (!term || !fa) return;
       const core = (term as any)._core;
-      if (!core) { fa.fit(); return; }
+      if (!core) {
+        fa.fit();
+        return;
+      }
       const dims = core._renderService?.dimensions;
       if (!dims || dims.css.cell.width === 0 || dims.css.cell.height === 0) {
         fa.fit();
         return;
       }
       const el = term.element;
-      if (!el?.parentElement) { fa.fit(); return; }
+      if (!el?.parentElement) {
+        fa.fit();
+        return;
+      }
       const parentStyle = window.getComputedStyle(el.parentElement);
       const parentH = parseInt(parentStyle.height);
       const parentW = Math.max(0, parseInt(parentStyle.width));
@@ -200,6 +214,26 @@ export function useXTerm(options: UseXTermOptions = {}): UseXTermReturn {
     fitRef.current = fitAddonInstance;
     searchRef.current = search;
 
+    // Attach IME composition event listeners to xterm's hidden textarea.
+    // xterm.js's CompositionHelper should handle this, but a known bug in
+    // _inputEvent causes individual jamo to leak through during Korean IME.
+    // We intercept compositionstart/end to buffer and flush only committed text.
+    const textarea = term.textarea as HTMLTextAreaElement | undefined;
+    const onCompositionStart = () => {
+      isComposingRef.current = true;
+      compositionBufferRef.current = '';
+    };
+    const onCompositionEnd = (e: CompositionEvent) => {
+      isComposingRef.current = false;
+      const committed = e.data;
+      if (committed && onData) {
+        onData(committed);
+      }
+      compositionBufferRef.current = '';
+    };
+    textarea?.addEventListener('compositionstart', onCompositionStart);
+    textarea?.addEventListener('compositionend', onCompositionEnd);
+
     let initRo: ResizeObserver | null = null;
     if (container.offsetWidth > 0 && container.offsetHeight > 0) {
       openTerminal();
@@ -276,6 +310,8 @@ export function useXTerm(options: UseXTermOptions = {}): UseXTermReturn {
       clearTimeout(roTimer);
       initRo?.disconnect();
       observer.disconnect();
+      textarea?.removeEventListener('compositionstart', onCompositionStart);
+      textarea?.removeEventListener('compositionend', onCompositionEnd);
       term.dispose();
       termRef.current = null;
       fitRef.current = null;
@@ -341,10 +377,14 @@ export function useXTerm(options: UseXTermOptions = {}): UseXTermReturn {
     fit();
   }, [fontSize, fit]);
 
-  // Wire up onData callback
+  // Wire up onData callback — suppress input during IME composition
+  // to prevent individual jamo from leaking through to the PTY.
   useEffect(() => {
     if (!termRef.current || !onData) return;
-    const disposable = termRef.current.onData(onData);
+    const disposable = termRef.current.onData((data) => {
+      if (isComposingRef.current) return;
+      onData(data);
+    });
     return () => disposable.dispose();
   }, [terminal, onData]);
 
