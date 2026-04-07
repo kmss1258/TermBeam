@@ -5,7 +5,7 @@ const path = require('path');
 const os = require('os');
 const log = require('./logger');
 
-const PACKAGE_NAME = 'termbeam';
+const PACKAGE_NAME = 'termbeam-mobile';
 const REGISTRY_URL = `https://registry.npmjs.org/${PACKAGE_NAME}/latest`;
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const REQUEST_TIMEOUT_MS = 5000;
@@ -270,7 +270,7 @@ function detectInstallMethod() {
     log.debug('Install method: npx');
     return {
       method: 'npx',
-      command: 'npx termbeam@latest',
+      command: 'npx termbeam-mobile@latest',
       installCmd: 'npx',
       installArgs: ['termbeam@latest'],
       canAutoUpdate: false,
@@ -356,7 +356,7 @@ function detectInstallMethod() {
   log.debug(`Install method: npm${isPm2 ? ' (PM2)' : ''}`);
   return {
     method: 'npm',
-    command: 'npm install -g termbeam@latest',
+    command: 'npm install -g termbeam-mobile@latest',
     installCmd: 'npm',
     installArgs: ['install', '-g', 'termbeam@latest'],
     canAutoUpdate: true,

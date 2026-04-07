@@ -66,7 +66,7 @@ export default function UpdateBanner() {
   useEffect(() => {
     checkUpdate(true).then((result) => {
       if (result?.updateAvailable) {
-        const cmd = result.command ?? 'npm install -g termbeam@latest';
+        const cmd = result.command ?? 'npm install -g termbeam-mobile@latest';
         commandRef.current = cmd;
         setState({
           kind: 'available',

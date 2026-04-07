@@ -378,7 +378,7 @@ function createTermBeamServer(overrides = {}) {
                   `  ${yl}Update available:${rs} ${dm}${info.current}${rs} → ${gn2}${info.latest}${rs}`,
                 );
                 if (installInfo.method === 'npx') {
-                  console.log(`  Next time, run: ${gn2}npx termbeam@latest${rs}`);
+                  console.log(`  Next time, run: ${gn2}npx termbeam-mobile@latest${rs}`);
                 } else {
                   console.log(`  Run: ${gn2}${installInfo.command}${rs}`);
                 }

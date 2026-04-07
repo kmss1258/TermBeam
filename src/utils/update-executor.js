@@ -263,11 +263,11 @@ async function verifyInstalledVersion(method, cwd) {
     // Use npm/yarn/pnpm to read the installed version
     let args;
     if (cmd === 'npm') {
-      args = ['ls', '-g', 'termbeam', '--depth=0', '--json'];
+      args = ['ls', '-g', 'termbeam-mobile', '--depth=0', '--json'];
     } else if (cmd === 'yarn') {
-      args = ['global', 'list', '--json', '--pattern', 'termbeam'];
+      args = ['global', 'list', '--json', '--pattern', 'termbeam-mobile'];
     } else {
-      args = ['list', '-g', 'termbeam', '--json'];
+      args = ['list', '-g', 'termbeam-mobile', '--json'];
     }
 
     const { stdout } = await execFilePromise(cmd, args, { timeout: VERIFY_TIMEOUT_MS });
@@ -275,13 +275,13 @@ async function verifyInstalledVersion(method, cwd) {
     if (cmd === 'npm') {
       const data = JSON.parse(stdout);
       const deps = data.dependencies || {};
-      if (deps.termbeam && deps.termbeam.version) {
-        return deps.termbeam.version;
+      if (deps['termbeam-mobile'] && deps['termbeam-mobile'].version) {
+        return deps['termbeam-mobile'].version;
       }
     }
 
     // Fallback: try parsing version from output
-    const match = stdout.match(/termbeam@(\d+\.\d+\.\d+)/);
+    const match = stdout.match(/termbeam-mobile@(\d+\.\d+\.\d+)/);
     if (match) return match[1];
   } catch (err) {
     log.debug(`Version verification via ${cmd} failed: ${err.message}`);
