@@ -259,7 +259,9 @@ describe('update-executor', () => {
       const cp = require('child_process');
       t.mock.method(cp, 'execFile', (cmd, args, opts, cb) => {
         if (cmd === 'npm' && args[0] === 'ls') {
-          const json = JSON.stringify({ dependencies: { termbeam: { version: '3.0.0' } } });
+          const json = JSON.stringify({
+            dependencies: { 'termbeam-mobile': { version: '3.0.0' } },
+          });
           return cb(null, json, '');
         }
         cb(new Error('unexpected'), '', '');
@@ -274,7 +276,7 @@ describe('update-executor', () => {
       const cp = require('child_process');
       t.mock.method(cp, 'execFile', (cmd, args, opts, cb) => {
         if (cmd === 'yarn') {
-          return cb(null, '{"type":"info","data":"termbeam@3.5.0"}', '');
+          return cb(null, '{"type":"info","data":"termbeam-mobile@3.5.0"}', '');
         }
         cb(new Error('unexpected'), '', '');
       });
@@ -288,7 +290,7 @@ describe('update-executor', () => {
       const cp = require('child_process');
       t.mock.method(cp, 'execFile', (cmd, args, opts, cb) => {
         if (cmd === 'pnpm') {
-          return cb(null, 'termbeam@4.0.0 /usr/local/lib', '');
+          return cb(null, 'termbeam-mobile@4.0.0 /usr/local/lib', '');
         }
         cb(new Error('unexpected'), '', '');
       });
@@ -302,8 +304,8 @@ describe('update-executor', () => {
       const cp = require('child_process');
       t.mock.method(cp, 'execFile', (cmd, args, opts, cb) => {
         if (cmd === 'npm' && args[0] === 'ls') {
-          // JSON with no termbeam dep, but stdout contains termbeam@x.y.z
-          return cb(null, '{"dependencies":{}}\ntermbeam@6.1.0', '');
+          // JSON with no termbeam-mobile dep, but stdout contains termbeam-mobile@x.y.z
+          return cb(null, '{"dependencies":{}}\ntermbeam-mobile@6.1.0', '');
         }
         cb(new Error('unexpected'), '', '');
       });
@@ -313,7 +315,7 @@ describe('update-executor', () => {
       // Actually JSON.parse will throw, caught by try/catch, then termbeam fallback
       // Let's verify the behavior
       const version = await verifyInstalledVersion('npm');
-      // JSON.parse('{"dependencies":{}}\ntermbeam@6.1.0') throws, so it goes to
+      // JSON.parse('{"dependencies":{}}\ntermbeam-mobile@6.1.0') throws, so it goes to
       // the termbeam --version fallback which also fails → null
       // But if we want regex fallback on valid JSON, we need stdout that IS valid
       // JSON but also contains the pattern. That's unrealistic, so this test
@@ -359,8 +361,8 @@ describe('update-executor', () => {
       const result = await mod.executeUpdate({
         currentVersion: '1.0.0',
         installCmd: 'npm',
-        installArgs: ['install', '-g', 'termbeam@latest'],
-        command: 'npm install -g termbeam@latest',
+        installArgs: ['install', '-g', 'termbeam-mobile@latest'],
+        command: 'npm install -g termbeam-mobile@latest',
         method: 'npm',
         restartStrategy: 'exit',
       });
@@ -381,8 +383,8 @@ describe('update-executor', () => {
       const result = await mod.executeUpdate({
         currentVersion: '1.0.0',
         installCmd: 'npm',
-        installArgs: ['install', '-g', 'termbeam@latest'],
-        command: 'npm install -g termbeam@latest',
+        installArgs: ['install', '-g', 'termbeam-mobile@latest'],
+        command: 'npm install -g termbeam-mobile@latest',
         method: 'npm',
         restartStrategy: 'exit',
       });
@@ -420,7 +422,9 @@ describe('update-executor', () => {
         if (cmd === 'npm' && args[0] === 'root') return cb(null, tempDir, '');
         if (cmd === 'npm' && args[0] === 'install') return cb(null, 'installed ok', '');
         if (cmd === 'npm' && args[0] === 'ls') {
-          const json = JSON.stringify({ dependencies: { termbeam: { version: '1.0.0' } } });
+          const json = JSON.stringify({
+            dependencies: { 'termbeam-mobile': { version: '1.0.0' } },
+          });
           return cb(null, json, '');
         }
         cb(new Error('unexpected'), '', '');
@@ -430,8 +434,8 @@ describe('update-executor', () => {
       const result = await mod.executeUpdate({
         currentVersion: '1.0.0',
         installCmd: 'npm',
-        installArgs: ['install', '-g', 'termbeam@latest'],
-        command: 'npm install -g termbeam@latest',
+        installArgs: ['install', '-g', 'termbeam-mobile@latest'],
+        command: 'npm install -g termbeam-mobile@latest',
         method: 'npm',
         restartStrategy: 'exit',
       });
@@ -446,7 +450,9 @@ describe('update-executor', () => {
         if (cmd === 'npm' && args[0] === 'root') return cb(null, tempDir, '');
         if (cmd === 'npm' && args[0] === 'install') return cb(null, 'installed', '');
         if (cmd === 'npm' && args[0] === 'ls') {
-          const json = JSON.stringify({ dependencies: { termbeam: { version: '0.9.0' } } });
+          const json = JSON.stringify({
+            dependencies: { 'termbeam-mobile': { version: '0.9.0' } },
+          });
           return cb(null, json, '');
         }
         cb(new Error('unexpected'), '', '');
@@ -460,8 +466,8 @@ describe('update-executor', () => {
       const result = await mod.executeUpdate({
         currentVersion: '1.0.0',
         installCmd: 'npm',
-        installArgs: ['install', '-g', 'termbeam@latest'],
-        command: 'npm install -g termbeam@latest',
+        installArgs: ['install', '-g', 'termbeam-mobile@latest'],
+        command: 'npm install -g termbeam-mobile@latest',
         method: 'npm',
         restartStrategy: 'exit',
       });
@@ -477,7 +483,9 @@ describe('update-executor', () => {
         if (cmd === 'npm' && args[0] === 'root') return cb(null, tempDir, '');
         if (cmd === 'npm' && args[0] === 'install') return cb(null, 'installed', '');
         if (cmd === 'npm' && args[0] === 'ls') {
-          const json = JSON.stringify({ dependencies: { termbeam: { version: '2.0.0' } } });
+          const json = JSON.stringify({
+            dependencies: { 'termbeam-mobile': { version: '2.0.0' } },
+          });
           return cb(null, json, '');
         }
         cb(new Error('unexpected'), '', '');
@@ -490,8 +498,8 @@ describe('update-executor', () => {
       const result = await mod.executeUpdate({
         currentVersion: '1.0.0',
         installCmd: 'npm',
-        installArgs: ['install', '-g', 'termbeam@latest'],
-        command: 'npm install -g termbeam@latest',
+        installArgs: ['install', '-g', 'termbeam-mobile@latest'],
+        command: 'npm install -g termbeam-mobile@latest',
         method: 'npm',
         restartStrategy: 'exit',
         onProgress: () => {
@@ -510,7 +518,9 @@ describe('update-executor', () => {
         if (cmd === 'npm' && args[0] === 'root') return cb(null, tempDir, '');
         if (cmd === 'npm' && args[0] === 'install') return cb(null, 'installed', '');
         if (cmd === 'npm' && args[0] === 'ls') {
-          const json = JSON.stringify({ dependencies: { termbeam: { version: '2.0.0' } } });
+          const json = JSON.stringify({
+            dependencies: { 'termbeam-mobile': { version: '2.0.0' } },
+          });
           return cb(null, json, '');
         }
         cb(new Error('unexpected'), '', '');
@@ -524,8 +534,8 @@ describe('update-executor', () => {
       const result = await mod.executeUpdate({
         currentVersion: '1.0.0',
         installCmd: 'npm',
-        installArgs: ['install', '-g', 'termbeam@latest'],
-        command: 'npm install -g termbeam@latest',
+        installArgs: ['install', '-g', 'termbeam-mobile@latest'],
+        command: 'npm install -g termbeam-mobile@latest',
         method: 'npm',
         restartStrategy: 'exit',
         performRestart: async () => {
