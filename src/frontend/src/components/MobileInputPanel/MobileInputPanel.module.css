@@ -4,12 +4,6 @@
   left: 0;
   right: 0;
   z-index: 60;
-  background: linear-gradient(
-    to bottom,
-    transparent 0%,
-    rgba(0, 0, 0, 0.15) 30%,
-    rgba(0, 0, 0, 0.5) 100%
-  );
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -39,19 +33,12 @@
 }
 
 .panel {
-  background: linear-gradient(
-    to bottom,
-    rgba(30, 30, 46, 0.7) 0%,
-    rgba(30, 30, 46, 0.95) 40%,
-    var(--surface, #1e1e2e) 100%
-  );
-  border-top-left-radius: 16px;
-  border-top-right-radius: 16px;
-  padding: 12px 12px 16px;
-  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  background: var(--surface, #1e1e2e);
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  padding: 4px 4px 6px;
+  padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
   animation: slideUp 0.2s ease-out;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
 }
 
 .panelClosing {
@@ -78,40 +65,37 @@
 
 .inputRow {
   display: flex;
-  gap: 8px;
+  gap: 4px;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 4px;
 }
 
 .textInput {
   flex: 1;
-  height: 44px;
-  padding: 0 14px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(42, 42, 62, 0.6);
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 6px;
+  border: 1px solid var(--key-border, #333);
+  background: var(--input-bg, #2a2a3e);
   color: var(--text, #e0e0e0);
-  font-size: 16px;
+  font-size: 14px;
   font-family: inherit;
   outline: none;
   -webkit-appearance: none;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
 }
 
 .textInput:focus {
   border-color: var(--accent, #0078d4);
-  box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.3);
 }
 
 .sendBtn {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
   border: none;
   background: var(--accent, #0078d4);
   color: #fff;
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 700;
   cursor: pointer;
   display: flex;
@@ -121,13 +105,13 @@
 }
 
 .closeBtn {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
   border: 1px solid var(--key-border, #333);
   background: var(--key-bg, #2a2a3e);
   color: var(--text, #e0e0e0);
-  font-size: 18px;
+  font-size: 14px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -137,25 +121,23 @@
 
 .specialKeys {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   flex-wrap: wrap;
   justify-content: center;
 }
 
 .specialKeys button {
-  height: 36px;
-  min-width: 44px;
-  padding: 0 10px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(42, 42, 62, 0.5);
+  height: 30px;
+  min-width: 36px;
+  padding: 0 8px;
+  border-radius: 6px;
+  border: 1px solid var(--key-border, #333);
+  background: var(--key-bg, #2a2a3e);
   color: var(--text, #e0e0e0);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   font-family: inherit;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
 }
 
 .specialKeys button.danger {
@@ -165,24 +147,22 @@
 
 .numberRow {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   flex-wrap: wrap;
   justify-content: center;
-  margin-top: 6px;
+  margin-top: 4px;
 }
 
 .numberRow button {
-  height: 36px;
-  min-width: 44px;
-  padding: 0 10px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(42, 42, 62, 0.5);
+  height: 30px;
+  min-width: 36px;
+  padding: 0 8px;
+  border-radius: 6px;
+  border: 1px solid var(--key-border, #333);
+  background: var(--key-bg, #2a2a3e);
   color: var(--text, #e0e0e0);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   font-family: inherit;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
 }
