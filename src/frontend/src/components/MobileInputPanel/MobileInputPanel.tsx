@@ -103,12 +103,21 @@ export default function MobileInputPanel() {
           <button onClick={() => handleSpecialKey('\x03')} className={styles.danger}>
             ^C
           </button>
+          <button onClick={() => handleSpecialKey('\x02')}>^B</button>
           <button onClick={() => handleSpecialKey('\x1b[D')}>←</button>
           <button onClick={() => handleSpecialKey('\x1b[A')}>↑</button>
           <button onClick={() => handleSpecialKey('\x1b[B')}>↓</button>
           <button onClick={() => handleSpecialKey('\x1b[C')}>→</button>
           <button onClick={() => handleSpecialKey('\x1b[H')}>Home</button>
           <button onClick={() => handleSpecialKey('\x1b[F')}>End</button>
+        </div>
+
+        <div className={styles.numberRow}>
+          {['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'].map((n) => (
+            <button key={n} onClick={() => handleSpecialKey(n)}>
+              {n}
+            </button>
+          ))}
         </div>
       </div>
     </div>

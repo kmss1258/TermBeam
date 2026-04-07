@@ -146,3 +146,25 @@
   background: #5c2222;
   color: #f87171;
 }
+
+.numberRow {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 6px;
+}
+
+.numberRow button {
+  height: 36px;
+  min-width: 44px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid var(--key-border, #333);
+  background: var(--key-bg, #2a2a3e);
+  color: var(--text, #e0e0e0);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
