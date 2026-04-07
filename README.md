@@ -4,19 +4,17 @@
 
 **Beam your terminal to any device.**
 
-[![npm version](https://img.shields.io/npm/v/termbeam.svg)](https://www.npmjs.com/package/termbeam)
-[![npm downloads](https://img.shields.io/npm/dm/termbeam.svg)](https://www.npmjs.com/package/termbeam)
-[![CI](https://github.com/dorlugasigal/TermBeam/actions/workflows/ci.yml/badge.svg)](https://github.com/dorlugasigal/TermBeam/actions/workflows/ci.yml)
-[![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/dorlugasigal/TermBeam/coverage-data/endpoint.json)](https://github.com/dorlugasigal/TermBeam/actions/workflows/ci.yml)
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/dorlugasigal/TermBeam/badge)](https://securityscorecards.dev/viewer/?uri=github.com/dorlugasigal/TermBeam)
-[![Node.js](https://img.shields.io/node/v/termbeam.svg)](https://nodejs.org/)
+[![npm version](https://img.shields.io/npm/v/termbeam-mobile.svg)](https://www.npmjs.com/package/termbeam-mobile)
+[![npm downloads](https://img.shields.io/npm/dm/termbeam-mobile.svg)](https://www.npmjs.com/package/termbeam-mobile)
+[![CI](https://github.com/kmss1258/TermBeam/actions/workflows/ci.yml/badge.svg)](https://github.com/kmss1258/TermBeam/actions/workflows/ci.yml)
+[![Node.js](https://img.shields.io/node/v/termbeam-mobile.svg)](https://nodejs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 </div>
 
 TermBeam lets you access your terminal from a phone, tablet, or any browser — no SSH, no port forwarding, no configuration needed. Run one command and scan the QR code.
 
-[Full documentation](https://dorlugasigal.github.io/TermBeam/) · [Website](https://termbeam.pages.dev)
+[Repository](https://github.com/kmss1258/TermBeam)
 
 https://github.com/user-attachments/assets/9dd4f3d7-f017-4314-9b3a-f6a5688e3671
 
@@ -34,13 +32,13 @@ https://github.com/user-attachments/assets/9dd4f3d7-f017-4314-9b3a-f6a5688e3671
 ## Quick Start
 
 ```bash
-npx termbeam
+npx termbeam-mobile
 ```
 
 Or install globally:
 
 ```bash
-npm install -g termbeam
+npm install -g termbeam-mobile
 termbeam
 ```
 
