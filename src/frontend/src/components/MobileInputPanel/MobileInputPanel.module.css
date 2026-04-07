@@ -1,6 +1,6 @@
 .overlay {
   position: fixed;
-  bottom: 0;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--keyboard-height, 0px));
   left: 0;
   right: 0;
   z-index: 60;

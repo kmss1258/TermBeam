@@ -160,9 +160,7 @@ export function TerminalPane({ sessionId, active, visible, fontSize = 14 }: Term
               cancelable: true,
             };
             xtermEl.dispatchEvent(new MouseEvent('mousedown', mouseOpts));
-            xtermEl.dispatchEvent(
-              new MouseEvent('mouseup', { ...mouseOpts, buttons: 0 }),
-            );
+            xtermEl.dispatchEvent(new MouseEvent('mouseup', { ...mouseOpts, buttons: 0 }));
           }
         }
       }
@@ -225,7 +223,9 @@ export function TerminalPane({ sessionId, active, visible, fontSize = 14 }: Term
   const searchBarOpen = useUIStore((s) => s.searchBarOpen);
   const sidePanelOpen = useUIStore((s) => s.sidePanelOpen);
   const copyOverlayOpen = useUIStore((s) => s.copyOverlayOpen);
-  const anyOverlayOpen = commandPaletteOpen || searchBarOpen || sidePanelOpen || copyOverlayOpen;
+  const mobileInputOpen = useUIStore((s) => s.mobileInputOpen);
+  const anyOverlayOpen =
+    commandPaletteOpen || searchBarOpen || sidePanelOpen || copyOverlayOpen || mobileInputOpen;
   const prevOverlayRef = useRef(anyOverlayOpen);
 
   useEffect(() => {
@@ -276,9 +276,16 @@ export function TerminalPane({ sessionId, active, visible, fontSize = 14 }: Term
 
     const onBlur = () => {
       // Don't fight legitimate blurs (overlay open, pane inactive, etc.)
-      const { commandPaletteOpen, searchBarOpen, sidePanelOpen, copyOverlayOpen } =
+      const { commandPaletteOpen, searchBarOpen, sidePanelOpen, copyOverlayOpen, mobileInputOpen } =
         useUIStore.getState();
-      if (commandPaletteOpen || searchBarOpen || sidePanelOpen || copyOverlayOpen) return;
+      if (
+        commandPaletteOpen ||
+        searchBarOpen ||
+        sidePanelOpen ||
+        copyOverlayOpen ||
+        mobileInputOpen
+      )
+        return;
 
       // Re-focus immediately within the blur event context
       requestAnimationFrame(() => {

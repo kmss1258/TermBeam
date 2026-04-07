@@ -107,6 +107,7 @@ export default function TouchBar() {
   const repeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const micTouchStartY = useRef<number | null>(null);
+  const suppressKeyboardToggleClickRef = useRef(false);
   const { keyboardOpen, keyboardHeight } = useMobileKeyboard();
 
   const MIC_LOCK_SWIPE_THRESHOLD = 40;
@@ -405,12 +406,21 @@ export default function TouchBar() {
       key={def.label}
       className={getKeyClassName(def)}
       data-testid={getTestId(def)}
-      onClick={() => handlePress(def)}
+      onClick={() => {
+        if (def.label === '⌨' && suppressKeyboardToggleClickRef.current) {
+          suppressKeyboardToggleClickRef.current = false;
+          return;
+        }
+        handlePress(def);
+      }}
       onMouseDown={() => handleMouseDown(def)}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
       onTouchStart={(e) => handleTouchStart(def, e)}
-      onTouchEnd={(e) => handleTouchEnd(def, e)}
+      onTouchEnd={(e) => {
+        if (def.label === '⌨') suppressKeyboardToggleClickRef.current = true;
+        handleTouchEnd(def, e);
+      }}
       onTouchCancel={handleMouseUp}
     >
       {def.label}
