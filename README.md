@@ -44,6 +44,10 @@ termbeam-mobile
 
 Scan the QR code printed in your terminal, or open the URL on any device.
 
+If you plan to reuse the same endpoint often, run with `--persisted-tunnel` and a fixed `--password` so the URL and login stay stable across restarts.
+
+For this project, DevTunnels is a better fit than ngrok because its free-tier usage limits are usually looser for monthly traffic and request volume.
+
 ```bash
 termbeam-mobile                        # tunnel + auto-password (default)
 termbeam-mobile --password mysecret    # custom password
@@ -122,6 +126,8 @@ For all flags, subcommands, and environment variables, see the [Configuration do
 ## Security
 
 TermBeam auto-generates a password and creates a secure tunnel by default, binding to `127.0.0.1` (localhost only). Auth uses httpOnly cookies with 24-hour expiry, login is rate-limited to 5 attempts per minute, QR codes contain single-use share tokens (5-min expiry), and security headers (X-Frame-Options, CSP, nosniff) are set on all responses.
+
+For repeatable local workflows, `--persisted-tunnel` plus a fixed password is the least annoying setup: you keep the same public URL and do not have to re-share access details every restart.
 
 For the full threat model and safety checklist, see [SECURITY.md](SECURITY.md). For detailed security documentation, see the [Security Guide](https://dorlugasigal.github.io/TermBeam/security/).
 
