@@ -1,8 +1,8 @@
 <div align="center">
 
-# TermBeam
+# TermBeam Mobile
 
-**Beam your terminal to any device.**
+**Beam your terminal to any device. Forked from TermBeam.**
 
 [![npm version](https://img.shields.io/npm/v/termbeam-mobile.svg)](https://www.npmjs.com/package/termbeam-mobile)
 [![npm downloads](https://img.shields.io/npm/dm/termbeam-mobile.svg)](https://www.npmjs.com/package/termbeam-mobile)
