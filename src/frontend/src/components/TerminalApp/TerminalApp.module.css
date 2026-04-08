@@ -190,7 +190,7 @@
 }
 
 .layout[data-keyboard-open] .terminalArea {
-  bottom: calc(env(safe-area-inset-bottom, 0px) + var(--mobile-input-height, 0px));
+  bottom: calc(var(--mobile-input-height, 0px) + var(--touchbar-offset, 0px));
 }
 
 .split {
