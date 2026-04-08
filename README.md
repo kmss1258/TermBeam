@@ -39,16 +39,16 @@ Or install globally:
 
 ```bash
 npm install -g termbeam-mobile
-termbeam
+termbeam-mobile
 ```
 
 Scan the QR code printed in your terminal, or open the URL on any device.
 
 ```bash
-termbeam                        # tunnel + auto-password (default)
-termbeam --password mysecret    # custom password
-termbeam --no-tunnel            # LAN only
-termbeam -i                     # interactive setup wizard
+termbeam-mobile                        # tunnel + auto-password (default)
+termbeam-mobile --password mysecret    # custom password
+termbeam-mobile --no-tunnel            # LAN only
+termbeam-mobile -i                     # interactive setup wizard
 ```
 
 ## Features
