@@ -29,6 +29,8 @@ export interface UseTerminalSocketReturn {
 const INITIAL_RECONNECT_DELAY = 500;
 const MAX_RECONNECT_DELAY = 30_000;
 const KEEPALIVE_INTERVAL = 15_000;
+const MOBILE_RESUME_RECONNECT_MS = 1000;
+const MAX_QUEUED_INPUTS = 100;
 
 // Original document title, saved once for title-bullet indicator
 const originalTitle = document.title;
@@ -38,8 +40,10 @@ const ATTACH_GRACE_MS = 2000;
 const attachGrace = new Map<string, ReturnType<typeof setTimeout>>();
 
 // Strip OSC 4/10/11/12 sequences that can cause display issues
+const OSC_SEQUENCE_RE = new RegExp('\\x1b\\](?:4|10|11|12);[^\\x07\\x1b]*(?:\\x07|\\x1b\\\\)', 'g');
+
 function stripOscSequences(data: string): string {
-  return data.replace(/\x1b\](?:4|10|11|12);[^\x07\x1b]*(?:\x07|\x1b\\)/g, '');
+  return data.replace(OSC_SEQUENCE_RE, '');
 }
 
 // Restore document title and clear app badge when the page becomes visible
@@ -66,6 +70,8 @@ export function useTerminalSocket(options: UseTerminalSocketOptions): UseTermina
   const hiddenAtRef = useRef<number | null>(null);
   const mountedRef = useRef(true);
   const connectFnRef = useRef<(() => void) | null>(null);
+  const connectedRef = useRef(false);
+  const pendingInputRef = useRef<string[]>([]);
 
   const [connected, setConnected] = useState(false);
   const [reconnecting, setReconnecting] = useState(false);
@@ -85,12 +91,63 @@ export function useTerminalSocket(options: UseTerminalSocketOptions): UseTermina
     }
   }, []);
 
-  const send = useCallback((data: string) => {
-    const ws = wsRef.current;
-    if (ws?.readyState === WebSocket.OPEN) {
+  const enqueueInput = useCallback((data: string) => {
+    pendingInputRef.current.push(data);
+    if (pendingInputRef.current.length > MAX_QUEUED_INPUTS) {
+      pendingInputRef.current.splice(0, pendingInputRef.current.length - MAX_QUEUED_INPUTS);
+    }
+  }, []);
+
+  const flushQueuedInput = useCallback((targetWs?: WebSocket | null) => {
+    const ws = targetWs ?? wsRef.current;
+    if (!ws || ws.readyState !== WebSocket.OPEN || !connectedRef.current) return;
+
+    const queued = pendingInputRef.current;
+    if (queued.length === 0) return;
+
+    pendingInputRef.current = [];
+    for (const data of queued) {
       ws.send(JSON.stringify({ type: 'input', data }));
     }
   }, []);
+
+  const forceReconnect = useCallback(() => {
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
+    if (keepaliveTimerRef.current) {
+      clearInterval(keepaliveTimerRef.current);
+      keepaliveTimerRef.current = null;
+    }
+
+    const ws = wsRef.current;
+    if (ws) {
+      ws.onclose = null;
+      ws.onerror = null;
+      ws.onmessage = null;
+      ws.close();
+      wsRef.current = null;
+    }
+
+    connectedRef.current = false;
+    setConnected(false);
+    setReconnecting(false);
+    reconnectDelayRef.current = INITIAL_RECONNECT_DELAY;
+    connectFnRef.current?.();
+  }, []);
+
+  const send = useCallback(
+    (data: string) => {
+      const ws = wsRef.current;
+      if (ws?.readyState === WebSocket.OPEN && connectedRef.current) {
+        ws.send(JSON.stringify({ type: 'input', data }));
+        return;
+      }
+      enqueueInput(data);
+    },
+    [enqueueInput],
+  );
 
   const lastSentDimsRef = useRef<{ cols: number; rows: number } | null>(null);
   const lastResizeTimeRef = useRef(0);
@@ -169,6 +226,7 @@ export function useTerminalSocket(options: UseTerminalSocketOptions): UseTermina
       const url = getWebSocketUrl();
       const ws = new WebSocket(url);
       wsRef.current = ws;
+      connectedRef.current = false;
 
       ws.onopen = () => {
         if (!mountedRef.current) {
@@ -209,6 +267,7 @@ export function useTerminalSocket(options: UseTerminalSocketOptions): UseTermina
               clearTimeout(disconnectGraceRef.current);
               disconnectGraceRef.current = null;
             }
+            connectedRef.current = true;
             setConnected(true);
             setReconnecting(false);
             onConnected?.();
@@ -226,6 +285,7 @@ export function useTerminalSocket(options: UseTerminalSocketOptions): UseTermina
               sessionId,
               setTimeout(() => attachGrace.delete(sessionId), ATTACH_GRACE_MS),
             );
+            flushQueuedInput(ws);
             break;
           }
           case 'output': {
@@ -246,10 +306,7 @@ export function useTerminalSocket(options: UseTerminalSocketOptions): UseTermina
             if (document.hidden && store.activeId !== sessionId) {
               const wasAlreadyUnread = session?.hasUnread ?? false;
               store.markUnread(sessionId);
-              if (
-                !wasAlreadyUnread &&
-                isNotificationsEnabled()
-              ) {
+              if (!wasAlreadyUnread && isNotificationsEnabled()) {
                 playNotificationSound();
               }
             }
@@ -312,6 +369,7 @@ export function useTerminalSocket(options: UseTerminalSocketOptions): UseTermina
         if (wsRef.current !== ws) return;
 
         wsRef.current = null;
+        connectedRef.current = false;
 
         if (keepaliveTimerRef.current) {
           clearInterval(keepaliveTimerRef.current);
@@ -357,6 +415,7 @@ export function useTerminalSocket(options: UseTerminalSocketOptions): UseTermina
 
       const hiddenDuration = hiddenAtRef.current ? Date.now() - hiddenAtRef.current : 0;
       hiddenAtRef.current = null;
+      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
       // Cancel any pending backoff timer
       if (reconnectTimerRef.current) {
@@ -373,13 +432,14 @@ export function useTerminalSocket(options: UseTerminalSocketOptions): UseTermina
         return;
       }
 
+      if (isTouchDevice && hiddenDuration > MOBILE_RESUME_RECONNECT_MS) {
+        forceReconnect();
+        return;
+      }
+
       // Long background (>30s) → socket is almost certainly dead, force reconnect
       if (hiddenDuration > 30000) {
-        ws.onclose = null;
-        ws.close();
-        wsRef.current = null;
-        setConnected(false);
-        connect();
+        forceReconnect();
         return;
       }
 
@@ -389,11 +449,7 @@ export function useTerminalSocket(options: UseTerminalSocketOptions): UseTermina
           ws.send(JSON.stringify({ type: 'ping' }));
         } catch {
           // Send failed → socket is dead, force reconnect
-          ws.onclose = null;
-          ws.close();
-          wsRef.current = null;
-          setConnected(false);
-          connect();
+          forceReconnect();
         }
       }
     }
@@ -412,32 +468,14 @@ export function useTerminalSocket(options: UseTerminalSocketOptions): UseTermina
         ws.close();
         wsRef.current = null;
       }
+      connectedRef.current = false;
       setConnected(false);
     };
-  }, [terminal, sessionId, onExit, onConnected, clearTimers]);
+  }, [terminal, sessionId, onExit, onConnected, clearTimers, flushQueuedInput, forceReconnect]);
 
   const reconnect = useCallback(() => {
-    if (reconnectTimerRef.current) {
-      clearTimeout(reconnectTimerRef.current);
-      reconnectTimerRef.current = null;
-    }
-    if (keepaliveTimerRef.current) {
-      clearInterval(keepaliveTimerRef.current);
-      keepaliveTimerRef.current = null;
-    }
-    const ws = wsRef.current;
-    if (ws) {
-      ws.onclose = null;
-      ws.onerror = null;
-      ws.onmessage = null;
-      ws.close();
-      wsRef.current = null;
-    }
-    reconnectDelayRef.current = INITIAL_RECONNECT_DELAY;
-    setConnected(false);
-    setReconnecting(false);
-    connectFnRef.current?.();
-  }, []);
+    forceReconnect();
+  }, [forceReconnect]);
 
   return { send, connected, reconnecting, sendResize, reconnect, ws: wsRef.current };
 }
