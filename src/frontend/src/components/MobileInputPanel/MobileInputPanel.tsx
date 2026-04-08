@@ -1,4 +1,5 @@
-import React, { useCallback, useRef, useState, useEffect } from 'react';
+import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from 'react';
+import { useMobileKeyboard } from '@/hooks/useMobileKeyboard';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useUIStore } from '@/stores/uiStore';
 import styles from './MobileInputPanel.module.css';
@@ -11,7 +12,8 @@ export default function MobileInputPanel() {
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const open = useUIStore((s) => s.mobileInputOpen);
-  const toggleMobileInput = useUIStore((s) => s.toggleMobileInput);
+  const setMobileInputOpen = useUIStore((s) => s.setMobileInputOpen);
+  const { keyboardOpen } = useMobileKeyboard();
 
   useEffect(() => {
     if (open) {
@@ -20,6 +22,26 @@ export default function MobileInputPanel() {
       return () => clearTimeout(timer);
     }
   }, [open]);
+
+  useEffect(() => {
+    if (!open || !keyboardOpen) return;
+
+    let frame1 = 0;
+    let frame2 = 0;
+
+    frame1 = requestAnimationFrame(() => {
+      frame2 = requestAnimationFrame(() => {
+        inputRef.current?.focus({ preventScroll: true });
+        panelRef.current?.scrollIntoView({ block: 'end', inline: 'nearest' });
+        inputRef.current?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      });
+    });
+
+    return () => {
+      cancelAnimationFrame(frame1);
+      cancelAnimationFrame(frame2);
+    };
+  }, [open, keyboardOpen]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -48,11 +70,11 @@ export default function MobileInputPanel() {
   const handleClose = useCallback(() => {
     setClosing(true);
     setTimeout(() => {
-      toggleMobileInput();
+      setMobileInputOpen(false);
       setClosing(false);
       setText('');
     }, CLOSE_ANIM_MS);
-  }, [toggleMobileInput]);
+  }, [setMobileInputOpen]);
 
   const sendInput = useCallback((data: string) => {
     const { sessions, activeId } = useSessionStore.getState();
@@ -65,14 +87,14 @@ export default function MobileInputPanel() {
 
   const handleSend = useCallback(() => {
     if (text) {
-      sendInput(text + '\r');
+      sendInput(`${text}\r`);
       setText('');
     }
     inputRef.current?.focus();
   }, [text, sendInput]);
 
   const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
+    (e: KeyboardEvent<HTMLInputElement>) => {
       if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
         e.preventDefault();
         e.stopPropagation();
@@ -100,14 +122,13 @@ export default function MobileInputPanel() {
   if (!open && !closing) return null;
 
   return (
-    <div
-      className={`${styles.overlay} ${closing ? styles.overlayClosing : ''}`}
-      onClick={handleClose}
-    >
+    <div className={`${styles.overlay} ${closing ? styles.overlayClosing : ''}`}>
       <div
         ref={panelRef}
         className={`${styles.panel} ${closing ? styles.panelClosing : ''}`}
-        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="false"
+        tabIndex={-1}
       >
         <div className={styles.inputRow}>
           <input
@@ -123,30 +144,55 @@ export default function MobileInputPanel() {
             spellCheck={false}
             placeholder="Type here..."
           />
-          <button className={styles.sendBtn} onClick={handleSend} aria-label="Send">
+          <button type="button" className={styles.sendBtn} onClick={handleSend} aria-label="Send">
             ↵
           </button>
-          <button className={styles.closeBtn} onClick={handleClose} aria-label="Close">
+          <button
+            type="button"
+            className={styles.closeBtn}
+            onClick={handleClose}
+            aria-label="Close"
+          >
             ✕
           </button>
         </div>
 
         <div className={styles.specialKeys}>
-          <button onClick={() => handleSpecialKey('\x1b')}>Esc</button>
-          <button onClick={() => handleSpecialKey('\x09')}>Tab</button>
-          <button onClick={() => handleSpecialKey('\x03')} className={styles.danger}>
+          <button type="button" onClick={() => handleSpecialKey('\x1b')}>
+            Esc
+          </button>
+          <button type="button" onClick={() => handleSpecialKey('\x09')}>
+            Tab
+          </button>
+          <button type="button" onClick={() => handleSpecialKey('\x03')} className={styles.danger}>
             ^C
           </button>
-          <button onClick={() => handleSpecialKey('\x02')}>^B</button>
-          <button onClick={() => handleSpecialKey('\x1b[D')}>←</button>
-          <button onClick={() => handleSpecialKey('\x1b[A')}>↑</button>
-          <button onClick={() => handleSpecialKey('\x1b[B')}>↓</button>
-          <button onClick={() => handleSpecialKey('\x1b[C')}>→</button>
+          <button type="button" onClick={() => handleSpecialKey('\x02')}>
+            ^B
+          </button>
+          <button type="button" onClick={() => handleSpecialKey('\x14')}>
+            ^T
+          </button>
+          <button type="button" onClick={() => handleSpecialKey('\x1b[D')}>
+            ←
+          </button>
+          <button type="button" onClick={() => handleSpecialKey('\x1b[A')}>
+            ↑
+          </button>
+          <button type="button" onClick={() => handleSpecialKey('\x1b[B')}>
+            ↓
+          </button>
+          <button type="button" onClick={() => handleSpecialKey('\x1b[C')}>
+            →
+          </button>
+          <button type="button" onClick={() => handleSpecialKey('\x7f')} aria-label="Backspace">
+            ⌫
+          </button>
         </div>
 
         <div className={styles.numberRow}>
           {['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'].map((n) => (
-            <button key={n} onClick={() => handleSpecialKey(n)}>
+            <button type="button" key={n} onClick={() => handleSpecialKey(n)}>
               {n}
             </button>
           ))}

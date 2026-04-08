@@ -92,10 +92,12 @@ function refocusTerminal(): void {
 }
 
 const SWIPE_THRESHOLD = 10;
+const REPEATABLE = new Set(['\x1b[A', '\x1b[B', '\x1b[C', '\x1b[D']);
 
 export default function TouchBar() {
   const ctrlActive = useUIStore((s) => s.touchCtrlActive);
   const shiftActive = useUIStore((s) => s.touchShiftActive);
+  const mobileInputOpen = useUIStore((s) => s.mobileInputOpen);
   const toggleMobileInput = useUIStore((s) => s.toggleMobileInput);
   const setCtrlActive = useUIStore((s) => s.setTouchCtrl);
   const setShiftActive = useUIStore((s) => s.setTouchShift);
@@ -111,6 +113,18 @@ export default function TouchBar() {
   const { keyboardOpen, keyboardHeight } = useMobileKeyboard();
 
   const MIC_LOCK_SWIPE_THRESHOLD = 40;
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty(
+      '--touchbar-offset',
+      keyboardOpen && !mobileInputOpen ? 'calc(80px + env(safe-area-inset-bottom, 0px))' : '0px',
+    );
+
+    return () => {
+      root.style.removeProperty('--touchbar-offset');
+    };
+  }, [keyboardOpen, mobileInputOpen]);
 
   const startMic = useCallback(() => {
     if (isRecording) return;
@@ -315,7 +329,18 @@ export default function TouchBar() {
       if (ctrlActive) setCtrlActive(false);
       if (shiftActive) setShiftActive(false);
     },
-    [resolveKeyData, flash, ctrlActive, shiftActive, handleCopy, handlePaste, toggleMobileInput],
+    [
+      resolveKeyData,
+      flash,
+      ctrlActive,
+      shiftActive,
+      handleCopy,
+      handlePaste,
+      toggleMobileInput,
+      keyboardHeight,
+      setCtrlActive,
+      setShiftActive,
+    ],
   );
 
   const handleMouseDown = useCallback(
@@ -335,8 +360,6 @@ export default function TouchBar() {
   const handleMouseUp = useCallback(() => {
     clearRepeat();
   }, [clearRepeat]);
-
-  const REPEATABLE = new Set(['\x1b[A', '\x1b[B', '\x1b[C', '\x1b[D']);
 
   const handleTouchStart = useCallback(
     (def: KeyDef, e: React.TouchEvent) => {
@@ -374,7 +397,7 @@ export default function TouchBar() {
 
       handlePress(def);
     },
-    [handlePress],
+    [handlePress, clearRepeat],
   );
 
   const getKeyClassName = (def: KeyDef): string => {
@@ -403,6 +426,7 @@ export default function TouchBar() {
 
   const renderKey = (def: KeyDef) => (
     <button
+      type="button"
       key={def.label}
       className={getKeyClassName(def)}
       data-testid={getTestId(def)}
@@ -427,15 +451,19 @@ export default function TouchBar() {
     </button>
   );
 
-  if (keyboardOpen) return null;
+  if (keyboardOpen && mobileInputOpen) return null;
 
   return (
-    <div className={styles.touchBar}>
+    <div
+      className={styles.touchBar}
+      style={keyboardOpen ? ({ bottom: `${keyboardHeight}px` } as React.CSSProperties) : undefined}
+    >
       <div className={styles.row}>{ROW1.map(renderKey)}</div>
       <div className={styles.row}>
         {ROW2.map(renderKey)}
         {SpeechRecognitionAPI && (
           <button
+            type="button"
             className={`${styles.keyBtn} ${styles.special} ${styles.micBtn} ${isRecording ? styles.recording : ''} ${micLocked ? styles.micLocked : ''}`}
             data-testid="mic-btn"
             onMouseDown={(e) => {
@@ -492,6 +520,7 @@ export default function TouchBar() {
                 strokeLinecap="round"
                 strokeLinejoin="round"
               >
+                <title>Locked microphone</title>
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                 <path d="M7 11V7a5 5 0 0 1 10 0v4" />
               </svg>
@@ -509,6 +538,7 @@ export default function TouchBar() {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 >
+                  <title>Swipe up to lock microphone</title>
                   <polyline points="18 15 12 9 6 15" />
                 </svg>
               </>
@@ -523,6 +553,7 @@ export default function TouchBar() {
                 strokeLinecap="round"
                 strokeLinejoin="round"
               >
+                <title>Microphone</title>
                 <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
                 <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
                 <line x1="12" y1="19" x2="12" y2="23" />

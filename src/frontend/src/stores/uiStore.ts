@@ -64,6 +64,7 @@ interface UIState {
   setTouchCtrl: (active: boolean) => void;
   setTouchShift: (active: boolean) => void;
   toggleMobileInput: () => void;
+  setMobileInputOpen: (open: boolean) => void;
   openCodeViewer: (sessionId: string, initialView?: 'files' | 'changes') => void;
   closeCodeViewer: () => void;
 }
@@ -122,6 +123,7 @@ export const useUIStore = create<UIState>((set) => ({
   setTouchCtrl: (active) => set({ touchCtrlActive: active }),
   setTouchShift: (active) => set({ touchShiftActive: active }),
   toggleMobileInput: () => set((s) => ({ mobileInputOpen: !s.mobileInputOpen })),
+  setMobileInputOpen: (open) => set({ mobileInputOpen: open }),
   openCodeViewer: (sessionId, initialView = 'files') =>
     set({
       codeViewerOpen: true,
